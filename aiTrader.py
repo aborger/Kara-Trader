@@ -1,5 +1,6 @@
 # Dependencies:
 # pip3 install alpaca-trade-api
+print('Importing dependencies...')
 import alpaca_trade_api as tradeapi
 from tensorflow import keras
 import numpy as np
@@ -11,20 +12,24 @@ NUMSTOCKS = 100
 NUMBARS = 10
 
 # Login to Alpaca
-api = tradeapi.REST(key_id='PKW854NSAYD72P0XLDJJ',
-	secret_key='5BMSm7xg9QvkjGssEMdzTg5yjeAYj4S2OHIRLF6q',
+print('Logging in...')
+api = tradeapi.REST(key_id='PKV06MEA5HFSFTMZL7JT',
+	secret_key='DLKb18bnhN06evMjVUhMxv0j/8ngKMDupVMjdgNb',
 	base_url='https://paper-api.alpaca.markets')
 
 # Load Model
+print('Loading AI...')
 model = keras.models.load_model('Trade-Model')
 
 # Load S&P500
+print('Loading stock list...')
 table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
 df = table[0]
 sp = df['Symbol']
 
 # Predict difference for each stock
 def FindDifferences():
+  print('Looking at stocks...')
   predicted_differences = []
   for symbol in range(0, NUMSTOCKS):
     # Get bars
@@ -49,7 +54,8 @@ def FindDifferences():
     predicted_price = sc.inverse_transform(predicted_price)
     # add difference to array
     difference = predicted_price[0,0] - reshapedSet[0, NUMBARS - 1, 0]
-    predicted_differences.append(difference)
+    percentDifference = difference/reshapedSet[0, NUMBARS - 1, 0]
+    predicted_differences.append(percentDifference)
   return predicted_differences
 
 # Buy Stock
@@ -73,8 +79,9 @@ def SellStock(stock):
     time_in_force='gtc')
 
 # Main
-predicted_differences = FindDifferences()
-best_stock = sp[predicted_differences.index(min(predicted_differences))]
-BuyStock(best_stock)
-time.sleep(30)
-SellStock(best_stock)
+while 1:
+	predicted_differences = FindDifferences()
+	best_stock = sp[predicted_differences.index(min(predicted_differences))]
+	BuyStock(best_stock)
+	time.sleep(300)
+	SellStock(best_stock)
