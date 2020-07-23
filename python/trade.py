@@ -13,13 +13,15 @@ NUMBARS = 10
 
 # Login to Alpaca
 print('Logging in...')
-api = tradeapi.REST(key_id='PKV06MEA5HFSFTMZL7JT',
-	secret_key='DLKb18bnhN06evMjVUhMxv0j/8ngKMDupVMjdgNb',
-	base_url='https://paper-api.alpaca.markets')
+from PYkeys import Keys
+keys = Keys()
+api = tradeapi.REST(key_id = keys.get_key_id(),
+                    secret_key = keys.get_secret_key(),
+                    base_url = keys.get_base_url())
 
 # Load Model
 print('Loading AI...')
-model = keras.models.load_model('Trade-Model')
+model = keras.models.load_model('data/Trade-Model')
 
 # Load S&P500
 print('Loading stock list...')
@@ -67,7 +69,7 @@ def BuyStock(stock):
     side='buy',
     type='market',
     time_in_force='gtc')
-	
+    
 # Sell Stock
 def SellStock(stock):
   print ('Sold ' + stock)
@@ -80,8 +82,8 @@ def SellStock(stock):
 
 # Main
 while 1:
-	predicted_differences = FindDifferences()
-	best_stock = sp[predicted_differences.index(min(predicted_differences))]
-	BuyStock(best_stock)
-	time.sleep(300)
-	SellStock(best_stock)
+    predicted_differences = FindDifferences()
+    best_stock = sp[predicted_differences.index(min(predicted_differences))]
+    BuyStock(best_stock)
+    time.sleep(300)
+    SellStock(best_stock)
