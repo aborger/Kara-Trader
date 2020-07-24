@@ -38,13 +38,16 @@ def trade():
     df = table[0]
     sp = df['Symbol']
     
+    #sp = sp[0:10]
+
     print('Loading AI...')
     from tensorflow import keras
     model = keras.models.load_model('data/Trade-Model.h5')
     for symbol in sp:
-        print('Getting ' + symbol + ' data...')
         this_stock = Stock(symbol, NUMBARS, api)
         this_stock.get_1D_gain(model)
+    
+    Stock.highest_gain()
 
 #############################################
 # Command Line

@@ -2,11 +2,26 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
 class Stock:
+    _stocks = []
     
+    def highest_gain():
+        print("Getting highest gain...")
+        max_gain = -100
+        max_stock = 0
+        for stock in Stock._stocks:
+            if stock.D_gain > max_gain:
+                max_gain = stock.D_gain
+                max_stock = stock
+        print('Highest gain = ' + str(max_gain))
+        print('Stock with highest gain is ' + max_stock.symbol)
+        
     def __init__(self, symbol, NUMBARS, api):
         self.symbol = symbol
         self.NUMBARS = NUMBARS
         self.api = api
+        self._stocks.append(self)
+        
+
         
     def predictions(self, model):
         self.prediction_list = [self.get_prediction('1Min', model),
@@ -38,8 +53,8 @@ class Stock:
         current = self.get_current_price()
         
         gain = prediction/current
-        gain = round((gain -1) * 100, 3)
-        print('Gain for ' + self.symbol + ' is ' + str(gain))
+        self.D_gain = round((gain -1) * 100, 3)
+        print('Gain for ' + self.symbol + ' is ' + str(self.D_gain))
 
     # time_frame can be 1Min, 5Min, 15Min, or 1D
     def get_prediction(self, time_frame, model):
