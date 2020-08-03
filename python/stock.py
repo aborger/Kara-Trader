@@ -1,104 +1,92 @@
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+from python.time_frame import Time_frame
 
 class Stock:
     _stocks = []
+    owned = []
+    _api = 0
     
-    def highest_gain():
-        print("Getting highest gain...")
-        max_gain = -100
-        max_stock = 0
-        for stock in Stock._stocks:
-            if stock.D_gain > max_gain:
-                max_gain = stock.D_gain
-                max_stock = stock
-        print('Highest gain = ' + str(max_gain))
-        print('Stock with highest gain is ' + max_stock.symbol)
+    def setup(NUMBARS, model, api):
+        Time_frame.setup(NUMBARS, model, api)
+        Stock._api = api
         
-    def __init__(self, symbol, NUMBARS, api):
+    
+    def _convert_frame_name(time_frame):
+        if time_frame == '1Min':
+            time_frame = 0
+        elif time_frame == '5Min':
+            time_frame = 1
+        elif time_frame == '15Min':
+            time_frame = 2
+        elif time_frame == '1D':
+            time_frame = 3
+        else:
+            raise InputError('Incorrect time frame')
+        return time_frame
+    
+    def highest_gain(time_frame): # returns 5 best stocks
+        time_frame = Stock._convert_frame_name(time_frame)
+                
+        def get_gain(stock):
+                return stock.frames[time_frame].gain
+        
+        # Currently only using 5 max gains
+        print("Getting highest gain...")
+        max_stocks = []
+        for stock in Stock._stocks:
+            stock.frames[time_frame].get_gain()
+            print(stock.symbol + "'s gain is " + str(stock.frames[time_frame].gain))
+            if len(max_stocks) < 5:
+                max_stocks.append(stock)
+            elif stock.frames[time_frame].gain > max_stocks[4].frames[time_frame].gain:
+                max_stocks.pop()
+                max_stocks.append(stock)
+                
+            # sort list so lowest gain is at the end
+            max_stocks.sort(reverse=True, key=get_gain)
+        return max_stocks
+        
+    def __init__(self, symbol):
         self.symbol = symbol
-        self.NUMBARS = NUMBARS
-        self.api = api
         self._stocks.append(self)
         
+        self.frames = [Time_frame('1Min', symbol), Time_frame('5Min', symbol),
+                        Time_frame('15Min', symbol), Time_frame('1D', symbol)]
+        
+    # returns saved gain
+    def return_gain(self, time_frame):
+        time_frame = Stock._convert_frame_name(time_frame)
+        return self.frames[time_frame].gain
+    
+    # updates gain and returns it
+    def get_gain(self, time_frame):
+        time_frame = Stock._convert_frame_name(time_frame)
+        self.frames[time_frame].get_gain()
+        return self.frames[time_frame].gain
+    
+    def buy(self):
+        Stock.owned.append(self)
+        print ('Bought ' + self.symbol)
+        Stock._api.submit_order(
+            symbol=self.symbol,
+            qty=1,
+            side='buy',
+            type='market',
+            time_in_force='gtc')
+        
+    def sell(self):
+        Stock.owned.remove(self)
+        print ('Sold ' + self.symbol)
+        Stock._api.submit_order(
+            symbol=self.symbol,
+            qty=1,
+            side='sell',
+            type='market',
+            time_in_force='gtc')
+        
+
 
         
-    def predictions(self, model):
-        self.prediction_list = [self.get_prediction('1Min', model),
-                            self.get_prediction('5Min', model),
-                            self.get_prediction('15Min', model),
-                            self.get_prediction('1D', model)]
-        
-    def get_current_price(self):
-        barset = (self.api.get_barset(self.symbol,'1Min',limit=1))
-        symbol_bars = barset[self.symbol]
-        current_price = symbol_bars[0].c
-        return current_price
-        
-    def get_max_gain(self, model):
-        self.predictions(model)
-        
-        current_price = self.get_current_price()
-        
-        # predict percent gain
-        highest_prediction = self.prediction_list.index(max(self.prediction_list))
-        gain = self.prediction_list[highest_prediction]/current_price
-        gain = round((gain -1) * 100, 3)
-        
-        self.max_gain = gain
-        print('Gain for ' + self.symbol + ' is ' + str(gain) + '%')
-        
-    def get_1D_gain(self, model):
-        prediction = self.get_prediction('1D', model)
-        current = self.get_current_price()
-        
-        gain = prediction/current
-        self.D_gain = round((gain -1) * 100, 3)
-        print('Gain for ' + self.symbol + ' is ' + str(self.D_gain))
 
-    # time_frame can be 1Min, 5Min, 15Min, or 1D
-    def get_prediction(self, time_frame, model):
-        #print('Getting prediction for ' self.symbol ' on ' + time_frame + ' time frame')
-        # Get bars
-        barset = (self.api.get_barset(self.symbol,time_frame,limit=self.NUMBARS))
-        # Get symbol's bars
-        symbol_bars = barset[self.symbol]
 
-        # Convert to list
-        dataSet = []
 
-        for barNum in symbol_bars:
-            bar = []
-            bar.append(barNum.o)
-            bar.append(barNum.c)
-            bar.append(barNum.h)
-            bar.append(barNum.l)
-            bar.append(barNum.v)
-            dataSet.append(bar)
-            
-          
-        # Convert to numpy array
-        npDataSet = np.array(dataSet)
-        reshapedSet = np.reshape(npDataSet, (1, self.NUMBARS, 5))
-        
-        # Normalize Data
-        sc = MinMaxScaler(feature_range=(0,1))
-        normalized = np.empty(shape=(1, self.NUMBARS, 5)) 
-        normalized[0] = sc.fit_transform(reshapedSet[0])
-        
-        # Predict Price
-        predicted_price = model.predict(normalized)
-        
-        
-        # Add 4 columns of 0 onto predictions so it can be fed back through sc
-        shaped_predictions = np.empty(shape = (1, 5))
-        for row in range(0, 1):
-            shaped_predictions[row, 0] = predicted_price[row, 0]
-        for col in range (1, 5):
-            shaped_predictions[row, col] = 0
-        
-        
-        # undo normalization
-        predicted_price = sc.inverse_transform(shaped_predictions)
-
-        return predicted_price[0][0]
+    

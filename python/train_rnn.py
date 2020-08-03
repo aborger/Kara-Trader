@@ -2,11 +2,9 @@
 
 import numpy as np
 import pandas as pd
-# Number of bars to predict on
-# Ex: If NUMBARS=4 use monday-thursday to predict friday 
-NUMBARS = 10
 
-def prepare(trainset_path):
+
+def prepare(trainset_path, NUMBARS):
     # Read in the dataset and save as panda dataframe
     print("Reading in dataset...")
     dataset_train = pd.read_csv(trainset_path, sep=r'\s*,\s*', engine='python')
@@ -70,7 +68,7 @@ def train_network(x_train, y_train, num_epochs):
 
 """Test the Results"""
 
-def test_results(trainset_path, testset_path, model):
+def test_results(trainset_path, testset_path, model, NUMBARS):
     dataset_train = pd.read_csv(trainset_path, sep=r'\s*,\s*', engine='python')
     # convert panda dataframe to numpy array
     training_set = dataset_train.to_numpy()

@@ -1,4 +1,7 @@
 # This file manages the other files
+
+# Number of bars to predict on
+# Ex: If NUMBARS=4 use monday-thursday to predict friday 
 NUMBARS = 10
 
 def train():
@@ -7,21 +10,21 @@ def train():
     from python.train_rnn import test_results
     import keras
 
-    x_train, y_train = prepare(args.trainset)
+    x_train, y_train = prepare(args.trainset, NUMBARS)
     model = train_network(x_train, y_train, args.epochs)
 
     print('Saving model...')
     model.save('data/Trade-Model.h5')
 
-    test_results(args.trainset, args.testset, model)
+    test_results(args.trainset, args.testset, model, NUMBARS)
     
 def test():
     from python.train_rnn import test_results
     import keras.models as model
     model = model.load_model(args.model)
-    test_results(args.trainset, args.testset, model)
+    test_results(args.trainset, args.testset, model, NUMBARS)
     
-def trade():
+def trade(is_test, time_period):
     from python.stock import Stock
     from python.PYkeys import Keys
     import alpaca_trade_api as tradeapi
@@ -38,17 +41,29 @@ def trade():
     df = table[0]
     sp = df['Symbol']
     
-    #sp = sp[0:10]
+    if is_test:
+        sp = sp[0:10]
 
     print('Loading AI...')
     from tensorflow import keras
     model = keras.models.load_model('data/Trade-Model.h5')
+    Stock.setup(NUMBARS, model, api)
     for symbol in sp:
-        this_stock = Stock(symbol, NUMBARS, api)
-        this_stock.get_1D_gain(model)
-    
-    Stock.highest_gain()
+        this_stock = Stock(symbol)
 
+    while True:
+        best_stocks = Stock.highest_gain(time_period)
+        for stock in best_stocks:
+            print('Stock: ' + stock.symbol)
+            print('Gain = ' + str(stock.return_gain(time_period))+ '%')
+            stock.buy()
+            print('-------------------------------')
+        while len(Stock.owned) > 0:
+            for stock in Stock.owned:
+                if stock.get_gain(time_period) < 0:
+                    stock.sell()
+        
+    
 #############################################
 # Command Line
 #############################################
@@ -72,6 +87,11 @@ if __name__ == '__main__':
     # New Data
     parser.add_argument("-d", action='store_true', required=False,
                         help="Include -d if you want to include new data")
+    # Test
+    parser.add_argument("-t", action='store_true', required=False,
+                        help='Include -t if this is a shortened test')
+    parser.add_argument("--time", default='1D',
+                        help = "Time period to buy and sell on")
     args = parser.parse_args()
 
     
@@ -86,7 +106,7 @@ if __name__ == '__main__':
         test()
 
     elif args.command == 'trade':
-        trade()
+        trade(args.t, args.time)
         
     else:
         raise InputError("Command must be either 'train', 'run', or 'view'")
