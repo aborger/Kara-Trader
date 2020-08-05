@@ -47,22 +47,24 @@ def trade(is_test, time_period):
     print('Loading AI...')
     from tensorflow import keras
     model = keras.models.load_model('data/Trade-Model.h5')
-    Stock.setup(NUMBARS, model, api)
+    Stock.setup(NUMBARS, model, api, time_period)
     for symbol in sp:
         this_stock = Stock(symbol)
+        
 
     while True:
-        best_stocks = Stock.highest_gain(time_period)
-        for stock in best_stocks:
-            print('Stock: ' + stock.symbol)
-            print('Gain = ' + str(stock.return_gain(time_period))+ '%')
-            stock.buy()
-            print('-------------------------------')
-        while len(Stock.owned) > 0:
-            for stock in Stock.owned:
-                if stock.get_gain(time_period) < 0:
-                    stock.sell()
-        
+        if len(Stock.owned) < 5:
+            best_stocks = Stock.highest_gain(5 - len(Stock.owned))
+            for stock in best_stocks:
+                print('Stock: ' + stock.symbol)
+                print('Gain = ' + str(stock.return_gain())+ '%')
+                stock.buy()
+                print('-------------------------------')
+                
+        print('Selling stocks...')
+        for stock in Stock.owned:
+            if stock.get_gain() < 0:
+                stock.sell()
     
 #############################################
 # Command Line
