@@ -108,13 +108,13 @@ def test_results(trainset_path, testset_path, model, NUMBARS):
     # Graph results
     print('Results: ')
     import matplotlib
-    matplotlib.use('TkAgg')
-    import matplotlib.pyplot as plt
-    plt.plot(real_stock_price[:,0], color = 'black', label = 'Stock Price')
-    plt.plot(predicted_stock_price[:,0], color = 'green', label = 'Price Prediction')
-    plt.title('Prediction')
-    plt.xlabel('Time')
-    plt.ylabel('Stock Price')
-    plt.legend()
-    plt.show()
-
+    #matplotlib.use('Agg')
+    #import matplotlib.pyplot as plt
+    #plt.plot(real_stock_price[:,0], color = 'black', label = 'Stock Price')
+    #plt.plot(predicted_stock_price[:,0], color = 'green', label = 'Price Prediction')
+    #plt.title('Prediction')
+    #plt.xlabel('Time')
+    #plt.ylabel('Stock Price')
+    #plt.legend()
+    #plt.show()
+    print('Done')
