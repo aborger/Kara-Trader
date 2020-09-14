@@ -4,14 +4,14 @@ import numpy as np
 import pandas as pd
 
 
-def prepare(trainset_path, NUMBARS):
+def prepare(trainset_path, NUMBARS, TRAINBARLENGTH):
     # Read in the dataset and save as panda dataframe
     print("Reading in dataset...")
     dataset_train = pd.read_csv(trainset_path, sep=r'\s*,\s*', engine='python')
     # convert panda dataframe to numpy array
     training_set = dataset_train.to_numpy()
-    print("Dataset Head: ")
-    print(dataset_train.head())
+    #print("Dataset Head: ")
+    #print(dataset_train.head())
 
 
     # Normalize data
@@ -28,7 +28,7 @@ def prepare(trainset_path, NUMBARS):
     # y_train is considered the true value that the network should get
     x_train = []
     y_train = []
-    for i in range(NUMBARS, 1000):
+    for i in range(NUMBARS, TRAINBARLENGTH):
       x_train.append(training_set_scaled[i-NUMBARS:i])
       y_train.append(training_set_scaled[i, 0])
     x_train, y_train = np.array(x_train), np.array(y_train)
@@ -36,15 +36,14 @@ def prepare(trainset_path, NUMBARS):
 
 
 """Build Neural Network"""
-
-def train_network(x_train, y_train, num_epochs):
+def build_network(NUMBARS):
     import keras
     from keras.models import Sequential
     from keras.layers import LSTM, Dropout, Dense, Flatten
 
     model = Sequential()
 
-    model.add(LSTM(units=50,return_sequences=True, input_shape=(x_train.shape[1], 5)))
+    model.add(LSTM(units=50,return_sequences=True, input_shape=(NUMBARS, 5)))
     model.add(Dropout(0.2))
 
     model.add(LSTM(units=50,return_sequences=True))
@@ -61,9 +60,10 @@ def train_network(x_train, y_train, num_epochs):
     print ('Model: ')
     model.summary()
     model.compile(optimizer='adam', loss= 'mean_squared_error')
-
+    return model
+	
+def train_network(x_train, y_train, num_epochs, model):
     model.fit(x_train,y_train,epochs=num_epochs, batch_size=32)
-    
     return model
 
 """Test the Results"""

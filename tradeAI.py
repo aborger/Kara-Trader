@@ -3,26 +3,48 @@
 # Number of bars to predict on
 # Ex: If NUMBARS=4 use monday-thursday to predict friday 
 NUMBARS = 10
-
+TRAINBARLENGTH = 1000
+TRAINSET = 'data/dataset.csv'
+TESTSET = 'data/testSet.csv'
+MODEL = 'data/Trade-Model.h5'
+def _train_collect(stock_num, type, User):
+	from python.training.collect_data import collect
+	# update users first to gain access to the api
+	collect(User.get_api(), stock_num, type, TRAINBARLENGTH, args.time)
+	
 def train():
-    from python.training.train_rnn import prepare
-    from python.training.train_rnn import train_network
-    from python.training.train_rnn import test_results
-    import keras
 
-    x_train, y_train = prepare(args.trainset, NUMBARS)
-    model = train_network(x_train, y_train, args.epochs)
+	import python.training.train_rnn as tr
+	import keras
 
-    print('Saving model...')
-    model.save('data/Trade-Model.h5')
+	if args.r:
+		model = keras.models.load_model(MODEL)
+	else:
+		model = tr.build_network(NUMBARS)
+	
+	from python.user_data.user import User
+	User.update_users()
+	
+	for stock in range(27, 500):
+		_train_collect(stock, 'train', User)
+		x_train, y_train = tr.prepare(TRAINSET, NUMBARS, TRAINBARLENGTH)
+		model = tr.train_network(x_train, y_train, args.epochs, model)
 
-    test_results(args.trainset, args.testset, model, NUMBARS)
+		print('Saving model...')
+		model.save('data/Trade-Model.h5')
+
     
 def test():
     from python.training.train_rnn import test_results
     import keras.models as model
-    model = model.load_model(args.model)
-    test_results(args.trainset, args.testset, model, NUMBARS)
+    model = model.load_model(MODEL)
+	
+	from python.user_data.user import User
+	User.update_users()
+	
+    for stock in range(500, 504):
+	    _train_collect(stock, 'test', User)
+	    test_results(TRAINSET, TESTSET, model, NUMBARS)
     
 def trade(is_test, time_period):
     
@@ -102,45 +124,40 @@ def trade(is_test, time_period):
 #############################################
 
 if __name__ == '__main__':
-    import argparse
-    parser = argparse.ArgumentParser(description='Control Trading AI')
-    parser.add_argument("command", metavar="<command>",
-                        help="'train', 'trade', 'test'")
-    parser.add_argument("--trainset", default='data/dataset.csv',
-                        metavar="path/to/training/dataset",
-                        help="Path to training dataset")
-    parser.add_argument("--testset", default='data/ZION5Min.csv',
-                        metavar="path/to/test/dataset",
-                        help="Path to test dataset")
-    parser.add_argument("--model", default='data/Trade-Model.h5',
-                        metavar="path/to/model",
-                        help="Path to model")
-    parser.add_argument("--epochs", default=100, type=int,
-                        help="Number of epochs to use in training")
-    # New Data
-    parser.add_argument("-d", action='store_true', required=False,
-                        help="Include -d if you want to include new data")
-    # Test
-    parser.add_argument("-t", action='store_true', required=False,
-                        help='Include -t if this is a shortened test')
-    parser.add_argument("--time", default='1D',
-                        help = "Time period to buy and sell on")
-    args = parser.parse_args()
+	import argparse
+	parser = argparse.ArgumentParser(description='Control Trading AI')
+	parser.add_argument("command", metavar="<command>",
+						help="'train', 'trade', 'test'")
+	parser.add_argument("--stocks", help 
+	# Train			
+	parser.add_argument("-r", action='store_true', required=False,
+						help='Include -r to resume training on previous model')
+						
+	parser.add_argument("--epochs", default=50, type=int,
+						help="Number of epochs to use in training")
+	# Test
+	parser.add_argument("-t", action='store_true', required=False,
+						help='Include -t if this is a shortened test')
+						
+	parser.add_argument("--time", default='1D',
+						help = "Time period to buy and sell on")
+						
+	args = parser.parse_args()
 
     
     # Run based on arguments
-    if args.d == True:
-        import os
-        os.system("sudo python3 python/collect_data.py")
-    elif args.command == 'train':
-        train()
+	if args.d == True:
+		import os
+		os.system("sudo python3 python/collect_data.py")
+	elif args.command == 'train':
+		train()
 
-    elif args.command == 'test':
-        test()
+	elif args.command == 'test':
+		test()
 
-    elif args.command == 'trade':
-        trade(args.t, args.time)
+	elif args.command == 'trade':
+		trade(args.t, args.time)
         
-    else:
-        raise InputError("Command must be either 'train', 'run', or 'view'")
+	else:
+		raise InputError("Command must be either 'train', 'run', or 'view'")
 
