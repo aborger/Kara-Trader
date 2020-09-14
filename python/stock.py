@@ -2,16 +2,18 @@ from python.time_frame import Time_frame
 
 class Stock:
     _stocks = []
-    owned = []
     _api = 0
     _period = 0
+    _loss_percent = .01
     
     def setup(NUMBARS, model, api, period):
         Time_frame.setup(NUMBARS, model, api)
         Stock._api = api
         Stock._period = Stock._convert_frame_name(period)
         
-    
+    def get_current_price(self):
+        return self.frames[Stock._period].get_current_price()
+        
     def _convert_frame_name(time_frame):
         if time_frame == '1Min':
             time_frame = 0
@@ -24,8 +26,23 @@ class Stock:
         else:
             raise InputError('Incorrect time frame')
         return time_frame
-    
-    def highest_gain(num_stocks): # returns num_stocks best stocks
+        
+    # Main function used by trade ai
+    # gives dict with best stocks and their buy ratio
+    def collect_stocks(num_stocks):
+        best_stocks = Stock._highest_gain(num_stocks)
+        gain_sum = 0
+        for stock in best_stocks:
+            gain_sum += stock.frames[Stock._period].gain
+        value_per_gain = 100/gain_sum
+        stocks = []
+        for stock in best_stocks:
+            this_buy_ratio = stock.frames[Stock._period].gain * value_per_gain
+            this_stock = dict(stock_object = stock, buy_ratio = this_buy_ratio/100)
+            stocks.append(this_stock)
+        return stocks
+    # returns num_stocks best stocks
+    def _highest_gain(num_stocks): 
                 
         def get_gain(stock):
                 return stock.frames[Stock._period].gain
@@ -45,7 +62,8 @@ class Stock:
             # sort list so lowest gain is at the end
             max_stocks.sort(reverse=True, key=get_gain)
         return max_stocks
-        
+    
+    
     def __init__(self, symbol):
         self.symbol = symbol
         self._stocks.append(self)
@@ -53,34 +71,51 @@ class Stock:
         self.frames = [Time_frame('1Min', symbol), Time_frame('5Min', symbol),
                         Time_frame('15Min', symbol), Time_frame('1D', symbol)]
         
-    # returns saved gain
-    def return_gain(self):
-        return self.frames[Stock._period].gain
-    
-    # updates gain and returns it
     def get_gain(self):
-        self.frames[Stock._period].get_gain()
         return self.frames[Stock._period].gain
     
-    def buy(self):
-        Stock.owned.append(self)
-        print ('Bought ' + self.symbol)
-        Stock._api.submit_order(
-            symbol=self.symbol,
-            qty=1,
-            side='buy',
-            type='market',
-            time_in_force='gtc')
+    def buy(self, api, quantity):
+        bought_price = self.frames[0].get_current_price()
+        #self.stop_price = bought_price - (bought_price * Stock._loss_percent)
+        print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
+                + ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
+        try:
+            api.submit_order(
+                symbol=self.symbol,
+                qty=quantity,
+                side='buy',
+                type='market',
+                time_in_force='gtc')
+        except:
+            print('Insufficient buying power')
+        finally:
+            pass
         
-    def sell(self):
-        Stock.owned.remove(self)
+        
+    def sell(self, api, quantity):
+        print('=====================================')
         print ('Sold ' + self.symbol)
-        Stock._api.submit_order(
+        api.submit_order(
             symbol=self.symbol,
             qty=1,
             side='sell',
             type='market',
             time_in_force='gtc')
+            
+    def sell_named_stock(name, api, quantity):
+        print('=====================================')
+        print ('Sold ' + name)
+        try:
+            api.submit_order(
+                symbol=name,
+                qty=quantity,
+                side='sell',
+                type='market',
+                time_in_force='gtc')
+        except:
+            print('Cannot sell due to day trade restrictions')
+        finally:
+            pass
         
 
 

@@ -24,7 +24,10 @@ class Time_frame:
         current = self.get_current_price()
         
         gain = prediction/current
-        self.gain = round((gain -1) * 100, 3)
+        gain = round((gain -1) * 100, 3)
+        if gain < 0:
+            gain = 0
+        self.gain = gain
     
     
     def get_prediction(self):
