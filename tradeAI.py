@@ -8,43 +8,43 @@ TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODEL = 'data/Trade-Model.h5'
 def _train_collect(stock_num, type, User):
-	from python.training.collect_data import collect
-	# update users first to gain access to the api
-	collect(User.get_api(), stock_num, type, TRAINBARLENGTH, args.time)
-	
+    from python.training.collect_data import collect
+    # update users first to gain access to the api
+    collect(User.get_api(), stock_num, type, TRAINBARLENGTH, args.time)
+    
 def train():
 
-	import python.training.train_rnn as tr
-	import keras
+    import python.training.train_rnn as tr
+    import keras
 
-	if args.r:
-		model = keras.models.load_model(MODEL)
-	else:
-		model = tr.build_network(NUMBARS)
-	
-	from python.user_data.user import User
-	User.update_users()
-	
-	for stock in range(27, 500):
-		_train_collect(stock, 'train', User)
-		x_train, y_train = tr.prepare(TRAINSET, NUMBARS, TRAINBARLENGTH)
-		model = tr.train_network(x_train, y_train, args.epochs, model)
+    if args.r:
+        model = keras.models.load(MODEL)
+    else:
+        model = tr.build_network(NUMBARS)
+    
+    from python.user_data.user import User
+    User.update_users()
+    
+    for stock in range(27, 500):
+        _train_collect(stock, 'train', User)
+        x_train, y_train = tr.prepare(TRAINSET, NUMBARS, TRAINBARLENGTH)
+        model = tr.train_network(x_train, y_train, args.epochs, model)
 
-		print('Saving model...')
-		model.save('data/Trade-Model.h5')
+        print('Saving model...')
+        model.save('data/Trade-Model.h5')
 
     
 def test():
     from python.training.train_rnn import test_results
     import keras.models as model
     model = model.load_model(MODEL)
-	
-	from python.user_data.user import User
-	User.update_users()
-	
+    
+    from python.user_data.user import User
+    User.update_users()
+    
     for stock in range(500, 504):
-	    _train_collect(stock, 'test', User)
-	    test_results(TRAINSET, TESTSET, model, NUMBARS)
+        _train_collect(stock, 'test', User)
+        test_results(TRAINSET, TESTSET, model, NUMBARS)
     
 def trade(is_test, time_period):
     
@@ -78,7 +78,7 @@ def trade(is_test, time_period):
 
     print('Loading AI...')
     from tensorflow import keras
-    model = keras.models.load_model('data/Trade-Model.h5')
+    model = keras.models.load_model('data/Trade-Model.h5', compile=False)
     
     # update users first to gain access to the api
     from python.user_data.user import User
@@ -124,40 +124,37 @@ def trade(is_test, time_period):
 #############################################
 
 if __name__ == '__main__':
-	import argparse
-	parser = argparse.ArgumentParser(description='Control Trading AI')
-	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'test'")
-	parser.add_argument("--stocks", help 
-	# Train			
-	parser.add_argument("-r", action='store_true', required=False,
-						help='Include -r to resume training on previous model')
-						
-	parser.add_argument("--epochs", default=50, type=int,
-						help="Number of epochs to use in training")
-	# Test
-	parser.add_argument("-t", action='store_true', required=False,
-						help='Include -t if this is a shortened test')
-						
-	parser.add_argument("--time", default='1D',
-						help = "Time period to buy and sell on")
-						
-	args = parser.parse_args()
+    import argparse
+    parser = argparse.ArgumentParser(description='Control Trading AI')
+    parser.add_argument("command", metavar="<command>",
+                        help="'train', 'trade', 'test'")
+    parser.add_argument("--stocks", help='what stocks') 
+    # Train         
+    parser.add_argument("-r", action='store_true', required=False,
+                        help='Include -r to resume training on previous model')
+                        
+    parser.add_argument("--epochs", default=50, type=int,
+                        help="Number of epochs to use in training")
+    # Test
+    parser.add_argument("-t", action='store_true', required=False,
+                        help='Include -t if this is a shortened test')
+                        
+    parser.add_argument("--time", default='1D',
+                        help = "Time period to buy and sell on")
+                        
+    args = parser.parse_args()
 
     
     # Run based on arguments
-	if args.d == True:
-		import os
-		os.system("sudo python3 python/collect_data.py")
-	elif args.command == 'train':
-		train()
+    if args.command == 'train':
+        train()
 
-	elif args.command == 'test':
-		test()
+    elif args.command == 'test':
+        test()
 
-	elif args.command == 'trade':
-		trade(args.t, args.time)
+    elif args.command == 'trade':
+        trade(args.t, args.time)
         
-	else:
-		raise InputError("Command must be either 'train', 'run', or 'view'")
+    else:
+        raise InputError("Command must be either 'train', 'run', or 'view'")
 
