@@ -7,9 +7,9 @@ def run():
    os.system("sudo python3 tradeAI.py trade --time=1D")
    return
 
-schedule.every().day.at("07:30").do(run)
+schedule.every().day.at("01:30").do(run)
 
 while True:
-   print('Waiting for open...')
+   print('Waiting to buy...')
    schedule.run_pending()
    time.sleep(60)

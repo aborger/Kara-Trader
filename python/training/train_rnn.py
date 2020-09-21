@@ -30,7 +30,7 @@ def prepare(trainset_path, NUMBARS, TRAINBARLENGTH):
     y_train = []
     for i in range(NUMBARS, TRAINBARLENGTH):
       x_train.append(training_set_scaled[i-NUMBARS:i])
-      y_train.append(training_set_scaled[i, 0])
+      y_train.append(training_set_scaled[i, 2])
     x_train, y_train = np.array(x_train), np.array(y_train)
     return x_train, y_train
 
