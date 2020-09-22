@@ -12,40 +12,65 @@ def _train_collect(stock_num, type, User):
     # update users first to gain access to the api
     collect(User.get_api(), stock_num, type, TRAINBARLENGTH, args.time)
     
-def train():
-
+def train(what_stocks):
     import python.training.train_rnn as tr
     import keras
 
     if args.r:
-        model = keras.models.load(MODEL)
+        model = keras.models.load_model(MODEL)
     else:
         model = tr.build_network(NUMBARS)
     
     from python.user_data.user import User
     User.update_users()
     
-    for stock in range(27, 500):
-        _train_collect(stock, 'train', User)
-        x_train, y_train = tr.prepare(TRAINSET, NUMBARS, TRAINBARLENGTH)
-        model = tr.train_network(x_train, y_train, args.epochs, model)
-
-        print('Saving model...')
-        model.save('data/Trade-Model.h5')
-
+    error_sheet = open(r"data/results/error.csv",'w')
+    error_sheet.write("Trained On,")
+    for stock in range(what_stocks[2], what_stocks[3]):
+        error_sheet.write("Error " + str(stock) + ",")
+		
+    error_sheet.write("\n")
+    error_sheet.close()
+	
+	
+	
+    for stock in range(what_stocks[0], what_stocks[1]):
+        try:
+            _train_collect(stock, 'train', User)
+            x_train, y_train = tr.prepare(TRAINSET, NUMBARS, TRAINBARLENGTH)
+            model = tr.train_network(x_train, y_train, args.epochs, model)
+	
+            print('Saving model...')
+            model.save('data/Trade-Model.h5')
+            test(what_stocks, stock)
+        except:
+            pass
     
-def test():
+def test(what_stocks, current_stock):
     from python.training.train_rnn import test_results
     import keras.models as model
     model = model.load_model(MODEL)
-    
     from python.user_data.user import User
     User.update_users()
     
-    for stock in range(500, 504):
+    error_sheet = open(r"data/results/error.csv",'a')
+    error_sheet.write(str(current_stock) + ",")
+    error_sheet.close()
+		
+    for stock in range(what_stocks[2], what_stocks[3]):
         _train_collect(stock, 'test', User)
-        test_results(TRAINSET, TESTSET, model, NUMBARS)
+		
+		
+        test_results(TRAINSET, TESTSET, model, NUMBARS, stock, current_stock)
     
+        error_sheet = open(r"data/results/error.csv",'a')
+        error_sheet.write(",")
+        error_sheet.close()
+		
+    error_sheet = open(r"data/results/error.csv",'a')
+    error_sheet.write("\n")
+    error_sheet.close()	
+	
 def trade(is_test, time_period):
     
     def wait_until_open():
@@ -128,7 +153,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Control Trading AI')
     parser.add_argument("command", metavar="<command>",
                         help="'train', 'trade', 'test'")
-    parser.add_argument("--stocks", help='what stocks') 
+    parser.add_argument("--stocks", help="tuple of: train_start, train_end, test_start, test_end") 
     # Train         
     parser.add_argument("-r", action='store_true', required=False,
                         help='Include -r to resume training on previous model')
@@ -145,12 +170,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     
+    what_stocks = [int(i) for i in args.stocks.split(',')]
     # Run based on arguments
     if args.command == 'train':
-        train()
+        train(what_stocks)
 
     elif args.command == 'test':
-        test()
+        test(what_stocks, current_stock=0)
 
     elif args.command == 'trade':
         trade(args.t, args.time)

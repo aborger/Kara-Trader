@@ -68,7 +68,7 @@ def train_network(x_train, y_train, num_epochs, model):
 
 """Test the Results"""
 
-def test_results(trainset_path, testset_path, model, NUMBARS):
+def test_results(trainset_path, testset_path, model, NUMBARS, stock, current_stock):
     dataset_train = pd.read_csv(trainset_path, sep=r'\s*,\s*', engine='python')
     # convert panda dataframe to numpy array
     training_set = dataset_train.to_numpy()
@@ -88,8 +88,6 @@ def test_results(trainset_path, testset_path, model, NUMBARS):
       X_test.append(inputs[i-NUMBARS:i])
     X_test = np.array(X_test)
     X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1],  5))
-    print('X_test shape: ')
-    print(X_test.shape)
 
     # Predict next prices
     print('Predicting prices...')
@@ -105,16 +103,32 @@ def test_results(trainset_path, testset_path, model, NUMBARS):
     # un-Normalize data
     predicted_stock_price = sc.inverse_transform(shaped_predictions)
 
+    
     # Graph results
     print('Results: ')
     import matplotlib
+    import os
+    print('data/results/stock' + str(stock) + '/')
+    if not os.path.isdir('data/results/stock' + str(stock) + '/'):
+        os.mkdir('data/results/stock' + str(stock) + '/')
     matplotlib.use('TkAgg')
     import matplotlib.pyplot as plt
-    plt.plot(real_stock_price[:,0], color = 'black', label = 'Stock Price')
+    plt.plot(real_stock_price[:,2], color = 'black', label = 'Stock Price')
     plt.plot(predicted_stock_price[:,0], color = 'green', label = 'Price Prediction')
     plt.title('Prediction')
     plt.xlabel('Time')
     plt.ylabel('Stock Price')
     plt.legend()
-    plt.show()
+    plt.savefig('data/results/stock' + str(stock) + '/training' + str(current_stock) + '.png')
+    plt.close()
+    
+	
+    # print results
+    error = 0
+    for i in range(0, len(real_stock_price) - NUMBARS):
+        error += abs(real_stock_price[i,2] - predicted_stock_price[i,0])
 
+    print('Error is: ' + str(error))
+    error_sheet = open(r"data/results/error.csv",'a')
+    error_sheet.write(str(error))
+    error_sheet.close()
