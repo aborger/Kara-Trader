@@ -7,8 +7,6 @@ def collect(api, STOCK_NUM, type, TRAINBARLENGTH, Time):
 	df = table[0]
 	sp = df['Symbol']
 
-	#print(sp)
-
 	import os, os.path
 
 	barset = []
@@ -29,8 +27,6 @@ def collect(api, STOCK_NUM, type, TRAINBARLENGTH, Time):
 		symbol = sp[symbolNum]
 		symbol_bars = barset[0][symbol] # 0 = symbolNum
 		for barNum in symbol_bars:
-	  #test = symbol
-		#print(barNum)
 			Dataset.write(str(barNum.t) + ',')
 			Dataset.write(str(barNum.o) + ',')
 			Dataset.write(str(barNum.c) + ',')
