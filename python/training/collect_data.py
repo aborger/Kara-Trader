@@ -12,7 +12,7 @@ def collect(api, STOCK_NUM, type, TRAINBARLENGTH, Time):
 	barset = []
 	for symbol in range(STOCK_NUM, STOCK_NUM + 1):
 	  barset.append(api.get_barset(sp[symbol],Time,limit=TRAINBARLENGTH))
-	  print(sp[symbol])
+	  #print(sp[symbol])
 
 	#print(barset[0])
 

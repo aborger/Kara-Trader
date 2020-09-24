@@ -36,36 +36,57 @@ class Training_Model:
 		error_sheet = open(r"data/results/error.csv",'w')
 		error_sheet.write('ID, Error,\n')
 		error_sheet.close()
+		
+		# Write stock to sheet
+		error_sheet = open(r"data/results/performance.csv",'w')
+		error_sheet.write('ID, Error,\n')
+		error_sheet.close()
 	
 	
 		lowest_error = -1
 		best_model = 0
 		# Testing best epochs
-		how_far = 10
-		for iterator in range(0, how_far):
+		this_id = 0
+		for epoch in range(0, 10):
 			print('======================================')
-			print('=                 ' + str(iterator) + ' / ' + str(how_far) + '             =')
+			print('=                 ' + str(epoch) + ' / ' + str(10) + '             =')
 			print('======================================')
-			try:
-				new_model = Training_Model(ID=iterator, what_stocks=[0,3,490,504], epochs=iterator, numbars=10, trainBarLength=1000)
-			except IndexError:
-				pass
-			except:
-				raise
-			else:
-				# Write stock to sheet
-				error_sheet = open(r"data/results/error.csv",'a')
-				error_sheet.write(str(new_model.ID) + ',' + str(new_model.error) + ',\n')
-				error_sheet.close()
-				print('Error: ' + str(new_model.error))
-				
-				# Test if better than best
-				if lowest_error == -1:
-					lowest_error = new_model.error
-					best_model = new_model
-				elif new_model.error < lowest_error:
-					lowest_error = new_model.error
-					best_model = new_model
+			for num_stocks in range (1, 5):
+				print('======================================')
+				print('=                 ' + str(num_stocks) + ' / ' + str(5) + '             =')
+				print('======================================')
+				for what_stocks in range(0, 5):
+					print('======================================')
+					print('=                 ' + str(what_stocks) + ' / ' + str(5) + '             =')
+					print('======================================')
+					try:
+						new_model = Training_Model(ID=this_id, what_stocks=[what_stocks,what_stocks + num_stocks,490,504], epochs=epoch, numbars=10, trainBarLength=1000)
+					except IndexError:
+						pass
+					except:
+						raise
+					else:
+						# Write stock to sheet
+						error_sheet = open(r"data/results/error.csv",'a')
+						error_sheet.write(str(new_model.ID) + ',' + str(new_model.error) + ',\n')
+						error_sheet.close()
+						#print('Error: ' + str(new_model.error))
+							
+						# Test if better than best
+						if lowest_error == -1:
+							lowest_error = new_model.error
+							best_model = new_model
+						elif new_model.error < lowest_error:
+							lowest_error = new_model.error
+							best_model = new_model
+							
+							# Write stock to sheet
+							error_sheet = open(r"data/results/performance.csv",'a')
+							error_sheet.write(str(new_model.ID) + ',' + str(new_model.error) + ',\n')
+							error_sheet.close()
+							print('New lowest error: ' + str(new_model.error))
+							
+						this_id += 1
 			
 				
 				
@@ -93,11 +114,12 @@ class Training_Model:
 	# returns average error over multiple stocks
 	def _validate(self):
 		error_sum = 0
+		print('Getting Error...')
 		for stock in range(self.what_stocks[2], self.what_stocks[3]):
 			self._train_collect(stock, 'test')
 			
 			error = tr.validate_results(Training_Model.TRAINSET, Training_Model.TESTSET, self.model, self.numbars)
-			print('Error: ' + str(error))
+			#print('Error: ' + str(error))
 			error_sum += error
 			
 		self.error = error_sum / (self.what_stocks[3] - self.what_stocks[2])

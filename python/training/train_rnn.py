@@ -6,7 +6,6 @@ import pandas as pd
 
 def prepare(trainset_path, NUMBARS, TRAINBARLENGTH):
 	# Read in the dataset and save as panda dataframe
-	print("Preparing...")
 	dataset_train = pd.read_csv(trainset_path, sep=r'\s*,\s*', engine='python')
 	# convert panda dataframe to numpy array
 	training_set = dataset_train.to_numpy()
@@ -76,7 +75,7 @@ def predict(trainset_path, testset_path, model, NUMBARS):
 	training_set_scaled = sc.fit_transform(training_set)
 	
 	# Read in test dataset
-	print('Testing...')
+	#print('Testing...')
 	dataset_test = pd.read_csv(testset_path, sep=r'\s*,\s*', engine='python')
 	real_stock_price = dataset_test.to_numpy()
 
