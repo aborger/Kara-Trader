@@ -12,8 +12,13 @@ def train():
 	import python.training.head_class as hc
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
-	
-
+def test():
+	import alpaca_trade_api as tradeapi
+	from python.user_data.user import User
+	User.update_users()
+	User.get_status()
+	User.get_equities()
+	User.get_gain()
 	
 def trade(is_test, time_period):
 	
@@ -47,7 +52,7 @@ def trade(is_test, time_period):
 
 	print('Loading AI...')
 	from tensorflow import keras
-	model = keras.models.load_model('data/Trade-Model.h5', compile=False)
+	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 	
 	# update users first to gain access to the api
 	from python.user_data.user import User
@@ -113,7 +118,7 @@ if __name__ == '__main__':
 		train()
 
 	elif args.command == 'test':
-		test(what_stocks, current_stock=0)
+		test()
 
 	elif args.command == 'trade':
 		trade(args.t, args.time)
