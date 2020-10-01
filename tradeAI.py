@@ -12,15 +12,18 @@ def train():
 	import python.training.head_class as hc
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
-def test():
+def test(is_paper):
 	import alpaca_trade_api as tradeapi
 	from python.user_data.user import User
-	User.update_users()
+	User.update_users(is_paper)
+	print('=========================================================')
 	User.get_status()
+	print('=========================================================')
 	User.get_equities()
+	print('=========================================================')
 	User.get_gain()
 	
-def trade(is_test, time_period):
+def trade(is_test, time_period, is_paper):
 	
 	def wait_until_open():
 		difference = 1
@@ -56,7 +59,7 @@ def trade(is_test, time_period):
 	
 	# update users first to gain access to the api
 	from python.user_data.user import User
-	User.update_users()
+	User.update_users(is_paper)
 	
 	# setup stocks
 	from python.stock import Stock
@@ -66,19 +69,25 @@ def trade(is_test, time_period):
 	
 
 		
-	#while True:
+
 	if User.get_api().get_clock().is_open:
 		# At open, get 5 best stocks and their buy ratio
 		best_stocks = Stock.collect_stocks(5)
-		User.update_users()
+		User.update_users(is_paper)
 		# Sell any open positions
 		User.users_sell()
 		# Buy the best stocks
 		User.users_buy(best_stocks)
+		'''
+		ready = False
+		while not ready:
+			ready = User.check_bought()
+		print('Now ready')
+		User.users_trailing()
+		'''
 	else:
 		print('Stock market is not open today.')
-	
-	return	
+		
 	# Wait until close
 	#while User.get_api().get_clock().is_open:
 	#	print('Waiting until closed...')
@@ -110,6 +119,8 @@ if __name__ == '__main__':
 						
 	parser.add_argument("--time", default='1D',
 						help = "Time period to buy and sell on")
+	parser.add_argument("-p", action='store_true', required=False,
+						help='When trading include -f to only trade paper account')
 						
 	args = parser.parse_args()
 
@@ -118,10 +129,10 @@ if __name__ == '__main__':
 		train()
 
 	elif args.command == 'test':
-		test()
+		test(args.p)
 
 	elif args.command == 'trade':
-		trade(args.t, args.time)
+		trade(args.t, args.time, args.p)
 		
 	else:
 		raise InputError("Command must be either 'train', 'run', or 'view'")
