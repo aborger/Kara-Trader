@@ -82,6 +82,7 @@ class Stock:
 	
 	def buy(self, api, quantity):
 		bought_price = self.frames[0].get_current_price()
+		import alpaca_trade_api as tradeapi
 		#self.stop_price = bought_price - (bought_price * Stock._loss_percent)
 		print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
 				+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
@@ -92,19 +93,24 @@ class Stock:
 				side='buy',
 				type='market',
 				time_in_force='gtc')
+		except tradeapi.rest.APIError:
+			print('Not enough buying power')
 		except:
-			print('Insufficient buying power')
-		else:
-			# submits trailing stop order
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='sell',
-				type='trailing_stop',
-				time_in_force='gtc',
-				trail_percent=1)
+			raise
+
 		
-		
+	def trailing_stop(name, api, quantity):
+		print('Applying trailing stop: ')
+		print(name)
+		# submits trailing stop order
+		api.submit_order(
+			symbol=name,
+			qty=quantity,
+			side='sell',
+			type='trailing_stop',
+			time_in_force='gtc',
+			trail_percent=1)
+			
 	def sell(self, api, quantity):
 		print('=====================================')
 		print ('Sold ' + self.symbol)

@@ -30,7 +30,7 @@ SAMPLE_RANGE_NAME = 'Form Responses 1'
 
 class User:
 	_users = []
-	def update_users():
+	def update_users(is_paper):
 		print('Getting users...')
 		# reset user list
 		User._users = []
@@ -39,7 +39,13 @@ class User:
 		# adds each user to user list
 		for user in user_data:
 			new_user = User(user)
-			User._users.append(new_user)
+			if not is_paper:
+				if new_user.status:
+					User._users.append(new_user)
+			else:
+				if new_user.info['email'] == 'test':
+					User._users.append(new_user)
+				
 	def get_api():
 		return User._users[0].api
 		
@@ -48,25 +54,30 @@ class User:
 			account = user.api.get_account()
 			equity = account.equity
 			print(user.info['email'] + ' has equity of ' + str(equity))
+
+			
 			
 	def get_status():
 		for user in User._users:
 			account = user.api.get_account()
 			status = account.status
 			print(user.info['email'] + ' is ' + status)
+
 	
 	def get_gain():
 		for user in User._users:
 			account = user.api.get_account()
 			try:
 				gain = float(account.equity) / float(account.last_equity)
+				gain = (gain - 1) * 100
 			except ZeroDivisionError:
 				print(user.info['email'] + ' account is empty')
 				pass
 			except:
 				raise
 			else:
-				print(user.info['email'] + ' has gained ' + str(gain) + '%')
+				formatted_gain = "{:.2f}".format(gain)
+				print(user.info['email'] + ' has gained ' + str(formatted_gain) + '%')
 			
 	def users_buy(best_stocks):
 		# Buy stocks for each user
@@ -109,6 +120,25 @@ class User:
 							print('Insufficient buying power')
 				buying_power = buying_power - spent
 				
+	def check_bought():
+		print('Checking all stocks are purchased...')
+		ready = True
+		for user in User._users:
+			orders = user.api.list_orders(
+				status='open'
+				)
+			if len(orders) > 0:
+				ready = False
+		return ready
+				
+	
+	def users_trailing():
+		print('Setting trailing stop for all users')
+		for user in User._users:
+			portfolio = user.api.list_positions()
+			for position in portfolio:
+				Stock.trailing_stop(position.symbol, user.api, position.qty)
+				
 	def users_sell():
 		print('All users are selling...')
 		for user in User._users:
@@ -118,17 +148,27 @@ class User:
 		
 	def __init__(self, user_info):
 		self.info = user_info
+		self.status = True
 		print('Loading api...')
-		# if aborger then paper-api
-		if self.info['email'] == 'test':
+		
+		#try as live account
+		self.api = tradeapi.REST(key_id = self.info['keyID'],
+							secret_key = self.info['secret_key'],
+							base_url = 'https://api.alpaca.markets')
+		try:
+			self.api.get_account()
+			
+		except tradeapi.rest.APIError:
 			self.api = tradeapi.REST(key_id = self.info['keyID'],
 						secret_key = self.info['secret_key'],
 						base_url = 'https://paper-api.alpaca.markets')
-		else:
-			self.api = tradeapi.REST(key_id = self.info['keyID'],
-							secret_key = self.info['secret_key'],
-							base_url = 'https://api.alpaca.markets')
-	
+			try:
+				self.api.get_account()
+			except:
+				print(self.info['email'] + ' does not work!')
+				self.status = False
+			else:
+				print(self.info['email'] + ' is paper account')
 
 def get_users():
 
