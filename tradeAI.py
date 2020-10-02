@@ -12,6 +12,8 @@ def train():
 	import python.training.head_class as hc
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
+
+	
 def test(is_paper):
 	import alpaca_trade_api as tradeapi
 	from python.user_data.user import User
@@ -23,6 +25,7 @@ def test(is_paper):
 	print('=========================================================')
 	User.get_gain()
 	
+
 def trade(is_test, time_period, is_paper):
 	
 	def wait_until_open():
