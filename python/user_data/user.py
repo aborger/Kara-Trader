@@ -66,13 +66,30 @@ class User:
 			gain = float(account.equity) / float(account.last_equity)
 			gain = (gain - 1) * 100
 		except ZeroDivisionError:
-			print(self.info['email'] + ' account is empty')
+			#print(self.info['email'] + ' account is empty')
 			pass
 		except:
 			raise
 		else:
 			formatted_gain = "{:.2f}".format(gain)
 			return formatted_gain
+			
+	def graph(self, LOGDIR):
+		import pandas as pd
+		import matplotlib
+		log = pd.read_csv(LOGDIR + self.info['email'] + '.csv', sep=r'\s*,\s*', engine='python')
+		log = log.to_numpy()
+		print('Graphing...')
+		
+		matplotlib.use('TkAgg')
+		import matplotlib.pyplot as plt
+		plt.plot(log[:,1], color = 'green', label = 'Equity')
+		plt.title('Account')
+		plt.xlabel('Time')
+		plt.ylabel('Account Value')
+		plt.legend()
+		#plt.savefig('data/results/stock' + str(stock) + '/training' + str(ID) + '.png')
+		plt.show()
 	
 	def get_stats():
 		print('=========================================================')
@@ -87,13 +104,82 @@ class User:
 		for user in User._users:
 			# Gain
 			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
-		
 			
 	# Overall stats
-	def log():
+	def log(LOGDIR):
+		import os
+		import time
 		print('logging...')
 		for user in User._users:
+			if not os.path.exists(LOGDIR + user.info['email'] + '.csv'):
+				# Start log
+				log = open(LOGDIR + user.info['email'] + '.csv','w')
+				log.write('Time, Equity\n')
+				log.close()
 			
+			# Add to log
+			log = open(LOGDIR + user.info['email'] + '.csv', 'a')
+			
+			# Time
+			t = time.localtime()
+			current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
+			log.write(current_time + ', ')
+			
+			# Equity
+			log.write(str(user.get_equity()) + '\n')
+			
+			log.close()
+		
+		# Get average gain
+		import pandas as pd
+		import numpy as np
+		gain_sum = 0.0
+		for user in User._users:
+			print(user.info['email'])
+			log = pd.read_csv(LOGDIR + user.info['email'] + '.csv', sep=r'\s*,\s*', engine='python')
+			log = log.to_numpy()
+			end = len(log) - 1
+			previous = end - 1
+			try:
+				gain = float(log[end][1]) / float(log[previous][1])
+				gain = (gain -1) * 100
+			except ZeroDivisionError:
+				print(user.info['email'] + ' is empty')
+				gain = 0
+				pass
+			except:
+				raise
+			print(gain)
+			if gain != 'nan':
+				gain_sum += gain
+			
+		avg_gain = gain_sum / len(User._users)
+		print(avg_gain)
+		
+		# Adding average gain to 1main
+		# Getting previous account value
+		logr = pd.read_csv(LOGDIR + '1main.csv', sep=r'\s*,\s*', engine='python')
+		logr = logr.to_numpy()
+		end = len(logr) -1
+		last_equity = logr[end][2]
+		
+		logw = open(LOGDIR + '1main.csv', 'a')
+		# Time
+		t = time.localtime()
+		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
+		logw.write(current_time + ', ')
+		
+		# Gain
+		logw.write(str(avg_gain) + ', ')
+		
+		# Average Account
+		new_equity = last_equity + last_equity * avg_gain
+		print(new_equity)
+		logw.write(str(new_equity) + '\n')
+		
+	def view(LOGDIR):
+		#for user in User._users:
+		User._users[0].graph(LOGDIR)
 		
 	
 	def users_buy(best_stocks):

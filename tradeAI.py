@@ -28,6 +28,14 @@ def log(is_paper):
 	
 	User.log(LOGDIR)
 	
+def read(is_paper):
+	import alpaca_trade_api as tradeapi
+	from python.user_data.user import User
+	User.update_users(is_paper)
+	
+	User.view(LOGDIR)
+	
+	
 
 def trade(is_test, time_period, is_paper):
 	
@@ -116,7 +124,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'test', log")
+						help="'train', 'trade', 'test', log, read")
 	# Test
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -143,6 +151,8 @@ if __name__ == '__main__':
 	elif args.command == 'log':
 		log(args.p)
 		
+	elif args.command == 'read':
+		read(args.p)
 	else:
 		raise InputError("Command must be either 'train', 'run', or 'view'")
 
