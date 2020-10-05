@@ -7,22 +7,36 @@ TRAINBARLENGTH = 1000
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
+LOGDIR = 'data/logs/'
 
 def train():
 	import python.training.head_class as hc
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
+
+	
 def test(is_paper):
 	import alpaca_trade_api as tradeapi
 	from python.user_data.user import User
 	User.update_users(is_paper)
-	print('=========================================================')
-	User.get_status()
-	print('=========================================================')
-	User.get_equities()
-	print('=========================================================')
-	User.get_gain()
+	User.get_stats()
 	
+def log(is_paper):
+	import alpaca_trade_api as tradeapi
+	from python.user_data.user import User
+	User.update_users(is_paper)
+	
+	User.log(LOGDIR)
+	
+def read(is_paper):
+	import alpaca_trade_api as tradeapi
+	from python.user_data.user import User
+	User.update_users(is_paper)
+	
+	User.view(LOGDIR)
+	
+	
+
 def trade(is_test, time_period, is_paper):
 	
 	def wait_until_open():
@@ -72,12 +86,12 @@ def trade(is_test, time_period, is_paper):
 
 	if User.get_api().get_clock().is_open:
 		# At open, get 5 best stocks and their buy ratio
-		best_stocks = Stock.collect_stocks(5)
-		User.update_users(is_paper)
+		#best_stocks = Stock.collect_stocks(5)
+		#User.update_users(is_paper)
 		# Sell any open positions
 		User.users_sell()
 		# Buy the best stocks
-		User.users_buy(best_stocks)
+		#User.users_buy(best_stocks)
 		'''
 		ready = False
 		while not ready:
@@ -110,7 +124,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'test'")
+						help="'train', 'trade', 'test', log, read")
 	# Test
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -133,7 +147,12 @@ if __name__ == '__main__':
 
 	elif args.command == 'trade':
 		trade(args.t, args.time, args.p)
+	
+	elif args.command == 'log':
+		log(args.p)
 		
+	elif args.command == 'read':
+		read(args.p)
 	else:
 		raise InputError("Command must be either 'train', 'run', or 'view'")
 
