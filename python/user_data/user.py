@@ -49,36 +49,53 @@ class User:
 	def get_api():
 		return User._users[0].api
 		
-	def get_equities():
-		for user in User._users:
-			account = user.api.get_account()
-			equity = account.equity
-			print(user.info['email'] + ' has equity of ' + str(equity))
-
+	# Individual stats
+	def get_equity(self):
+		account = self.api.get_account()
+		equity = account.equity
+		return equity
 			
-			
-	def get_status():
-		for user in User._users:
-			account = user.api.get_account()
-			status = account.status
-			print(user.info['email'] + ' is ' + status)
+	def get_status(self):
+		account = self.api.get_account()
+		status = account.status
+		return status
 
+	def get_gain(self):
+		account = self.api.get_account()
+		try:
+			gain = float(account.equity) / float(account.last_equity)
+			gain = (gain - 1) * 100
+		except ZeroDivisionError:
+			print(self.info['email'] + ' account is empty')
+			pass
+		except:
+			raise
+		else:
+			formatted_gain = "{:.2f}".format(gain)
+			return formatted_gain
 	
-	def get_gain():
+	def get_stats():
+		print('=========================================================')
 		for user in User._users:
-			account = user.api.get_account()
-			try:
-				gain = float(account.equity) / float(account.last_equity)
-				gain = (gain - 1) * 100
-			except ZeroDivisionError:
-				print(user.info['email'] + ' account is empty')
-				pass
-			except:
-				raise
-			else:
-				formatted_gain = "{:.2f}".format(gain)
-				print(user.info['email'] + ' has gained ' + str(formatted_gain) + '%')
+			# Status
+			print(user.info['email'] + ' is ' + str(user.get_status()))
+		print('=========================================================')
+		for user in User._users:
+			# Equity
+			print(user.info['email'] + ' has equity of ' + str(user.get_equity()))
+		print('=========================================================')
+		for user in User._users:
+			# Gain
+			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
+		
 			
+	# Overall stats
+	def log():
+		print('logging...')
+		for user in User._users:
+			
+		
+	
 	def users_buy(best_stocks):
 		# Buy stocks for each user
 		for user in User._users:
@@ -146,6 +163,10 @@ class User:
 			for position in portfolio:
 					Stock.sell_named_stock(position.symbol, user.api, position.qty)
 		
+			
+	
+	
+	
 	def __init__(self, user_info):
 		self.info = user_info
 		self.status = True
