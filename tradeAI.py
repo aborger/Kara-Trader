@@ -75,12 +75,12 @@ def trade(is_test, time_period, is_paper):
 
 	if User.get_api().get_clock().is_open:
 		# At open, get 5 best stocks and their buy ratio
-		best_stocks = Stock.collect_stocks(5)
-		User.update_users(is_paper)
+		#best_stocks = Stock.collect_stocks(5)
+		#User.update_users(is_paper)
 		# Sell any open positions
 		User.users_sell()
 		# Buy the best stocks
-		User.users_buy(best_stocks)
+		#User.users_buy(best_stocks)
 		'''
 		ready = False
 		while not ready:
@@ -136,6 +136,7 @@ if __name__ == '__main__':
 
 	elif args.command == 'trade':
 		trade(args.t, args.time, args.p)
+	
 		
 	else:
 		raise InputError("Command must be either 'train', 'run', or 'view'")
