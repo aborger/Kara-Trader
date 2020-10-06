@@ -17,7 +17,7 @@ def log():
    os.system("sudo python3 tradeAI.py log")
    return
 
-schedule.every().day.at("13:30").do(buy)
+schedule.every().day.at("13:00").do(buy)
 schedule.every().day.at("07:30").do(trail)
 schedule.every().hour.do(log)
 

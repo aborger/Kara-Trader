@@ -89,6 +89,8 @@ def buy(is_test, time_period, is_paper):
 		User.users_sell()
 		# Buy the best stocks
 		User.users_buy(best_stocks)
+		
+		User.users_sell()
 	else:
 		print('Stock market is not open today.')
 		
