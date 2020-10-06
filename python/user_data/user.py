@@ -10,8 +10,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from google.auth.transport.requests import Request
 
-import alpaca_trade_api as tradeapi
-
 from ..stock import Stock
 
 # If modifying these scopes, delete the file token.pickle.
@@ -30,7 +28,7 @@ SAMPLE_RANGE_NAME = 'Form Responses 1'
 
 class User:
 	_users = []
-	def update_users(is_paper):
+	def update_users(is_paper, tradeapi):
 		print('Getting users...')
 		# reset user list
 		User._users = []
@@ -38,13 +36,16 @@ class User:
 		user_data = get_users()
 		# adds each user to user list
 		for user in user_data:
-			new_user = User(user)
+			new_user = User(user, tradeapi)
 			if not is_paper:
 				if new_user.status:
 					User._users.append(new_user)
 			else:
 				if new_user.info['email'] == 'test':
 					User._users.append(new_user)
+					
+		for user in User._users:
+			print(user.info['email'])
 				
 	def get_api():
 		return User._users[0].api
@@ -254,7 +255,7 @@ class User:
 	
 	
 	
-	def __init__(self, user_info):
+	def __init__(self, user_info, tradeapi):
 		self.info = user_info
 		self.status = True
 		print('Loading api...')

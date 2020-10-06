@@ -1,4 +1,5 @@
 from python.time_frame import Time_frame
+BACKTEST = 'data/backTest/'
 
 class Stock:
 	_stocks = []
@@ -82,21 +83,18 @@ class Stock:
 	
 	def buy(self, api, quantity):
 		bought_price = self.frames[0].get_current_price()
-		import alpaca_trade_api as tradeapi
+
 		#self.stop_price = bought_price - (bought_price * Stock._loss_percent)
 		print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
 				+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
-		try:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='buy',
-				type='market',
-				time_in_force='gtc')
-		except tradeapi.rest.APIError:
-			print('Not enough buying power')
-		except:
-			raise
+
+		api.submit_order(
+			symbol=self.symbol,
+			qty=quantity,
+			side='buy',
+			type='market',
+			time_in_force='gtc')
+
 
 		
 	def trailing_stop(name, api, quantity):
@@ -135,7 +133,6 @@ class Stock:
 			print('Cannot sell due to day trade restrictions')
 		finally:
 			pass
-		
 
 
 		
