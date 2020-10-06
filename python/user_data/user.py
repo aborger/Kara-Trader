@@ -74,10 +74,10 @@ class User:
 			formatted_gain = "{:.2f}".format(gain)
 			return formatted_gain
 			
-	def graph(self, LOGDIR):
+	def graph(file):
 		import pandas as pd
 		import matplotlib
-		log = pd.read_csv(LOGDIR + self.info['email'] + '.csv', sep=r'\s*,\s*', engine='python')
+		log = pd.read_csv(file, sep=r'\s*,\s*', engine='python')
 		log = log.to_numpy()
 		print('Graphing...')
 		
@@ -166,7 +166,7 @@ class User:
 		logw = open(LOGDIR + '1main.csv', 'a')
 		# Time
 		t = time.localtime()
-		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
+		current_time = time.strftime("%m/%d/%Y %H:%M:%S", t)
 		logw.write(current_time + ', ')
 		
 		# Gain
@@ -179,7 +179,8 @@ class User:
 		
 	def view(LOGDIR):
 		#for user in User._users:
-		User._users[0].graph(LOGDIR)
+		#LOGDIR + self.info['email'] + '.csv'
+		graph(LOGDIR + '1main.csv')
 		
 	
 	def users_buy(best_stocks):
