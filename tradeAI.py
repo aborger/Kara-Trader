@@ -13,7 +13,14 @@ def train():
 	import python.training.head_class as hc
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
-
+def backtest():
+	User.set_time()
+	User.get_stats()
+	trade(True, '1D')
+	User.next_day()
+	User.get_stats()
+	quick_sell()
+	User.get_stats()
 	
 def test():
 	User.get_stats()
@@ -88,10 +95,11 @@ if __name__ == '__main__':
 						
 	parser.add_argument("--name", help = "Name for new model when training")
 						
+	parser.add_argument("-b", action='store_true', required=False)
+	
 	parser.add_argument("--time", default='1D',
 						help = "Time period to buy and sell on")
-	parser.add_argument("-b", action='store_true', required=False,
-						help='Include -b to backtest')
+
 	parser.add_argument("-p", action='store_true', required=False,
 						help='When trading include -f to only trade paper account')
 			
@@ -102,32 +110,33 @@ if __name__ == '__main__':
 		import python.backtest_api as tradeapi
 		LOGDIR = 'data/backTest/logs/'
 		from python.user_data.user import backtestUser as User
-		User.update_users(tradeapi)
+		User.update_users(args.p, tradeapi)
+		backtest()
 	else:
-		print('I screwed up')
 		import alpaca_trade_api as tradeapi
 		from python.user_data.user import User
 		User.update_users(args.p, tradeapi)
-	if args.command == 'train':
-		train()
+		
+		if args.command == 'train':
+			train()
 
-	elif args.command == 'test':
-		test()
+		elif args.command == 'test':
+			test()
 
-	elif args.command == 'trade':
-		trade(args.t, args.time,)
+		elif args.command == 'trade':
+			trade(args.t, args.time,)
+			
+		elif args.command == 'sell':
+			quick_sell()
+			
+		elif args.command == 'trail':
+			trailing()
 		
-	elif args.command == 'sell':
-		quick_sell()
-		
-	elif args.command == 'trail':
-		trailing()
-	
-	elif args.command == 'log':
-		log()
-		
-	elif args.command == 'read':
-		read()
-	else:
-		raise InputError("Command must be either 'train', 'run', or 'view'")
+		elif args.command == 'log':
+			log()
+			
+		elif args.command == 'read':
+			read()
+		else:
+			raise InputError("Command must be either 'train', 'run', or 'view'")
 

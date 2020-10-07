@@ -33,25 +33,23 @@ class User:
 	def update_users(cls, is_paper, tradeapi):
 		print('Getting users...')
 		# reset user list
-		User._users = []
+		cls._users = []
 		# gets user data
-		user_data = User.get_users()
+		user_data = cls.get_users()
 		# adds each user to user list
 		for user in user_data:
 			new_user = User(user, tradeapi)
 			if not is_paper:
 				if new_user.status:
-					User._users.append(new_user)
+					cls._users.append(new_user)
 			else:
 				if new_user.info['email'] == 'test':
-					User._users.append(new_user)
+					cls._users.append(new_user)
 					
-		for user in User._users:
-			print(user.info['email'])
 				
 	@classmethod
 	def get_api(cls):
-		return User._users[0].api
+		return cls._users[0].api
 		
 	# Individual stats
 	def get_equity(self):
@@ -63,6 +61,11 @@ class User:
 		account = self.api.get_account()
 		status = account.status
 		return status
+		
+	def get_buying_power(self):
+		account = self.api.get_account()
+		buying_power = account.buying_power
+		return buying_power
 
 	def get_gain(self):
 		account = self.api.get_account()
@@ -99,15 +102,15 @@ class User:
 	@classmethod
 	def get_stats(cls):
 		print('=========================================================')
-		for user in User._users:
+		for user in cls._users:
 			# Status
 			print(user.info['email'] + ' is ' + str(user.get_status()))
 		print('=========================================================')
-		for user in User._users:
+		for user in cls._users:
 			# Equity
 			print(user.info['email'] + ' has equity of ' + str(user.get_equity()))
 		print('=========================================================')
-		for user in User._users:
+		for user in cls._users:
 			# Gain
 			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
 			
@@ -117,7 +120,7 @@ class User:
 		import os
 		import time
 		print('logging...')
-		for user in User._users:
+		for user in cls._users:
 			if not os.path.exists(LOGDIR + user.info['email'] + '.csv'):
 				# Start log
 				log = open(LOGDIR + user.info['email'] + '.csv','w')
@@ -189,10 +192,10 @@ class User:
 		#LOGDIR + self.info['email'] + '.csv'
 		graph(LOGDIR + '1main.csv')
 		
-	
-	def users_buy(best_stocks):
+	@classmethod
+	def users_buy(cls, best_stocks):
 		# Buy stocks for each user
-		for user in User._users:
+		for user in cls._users:
 			print('User: ' + user.info['email'])
 			print('========================================')
 			# find cheapest stock to make sure we buy as much as possible
@@ -212,7 +215,7 @@ class User:
 					max_money_for_stock = buying_power * stock_dict['buy_ratio']
 					current = stock_dict['stock_object'].get_current_price()
 					quantity = int(max_money_for_stock / current)
-					debug = True
+					debug = False
 					if debug:
 						print('------------------------------------------')
 						print('Stock: ' + stock_dict['stock_object'].symbol)
@@ -231,28 +234,19 @@ class User:
 							print('Insufficient buying power')
 				buying_power = buying_power - spent
 				
-	def check_bought():
-		print('Checking all stocks are purchased...')
-		ready = True
-		for user in User._users:
-			orders = user.api.list_orders(
-				status='open'
-				)
-			if len(orders) > 0:
-				ready = False
-		return ready
 				
-	
-	def users_trailing():
+	@classmethod
+	def users_trailing(cls):
 		print('Setting trailing stop for all users')
-		for user in User._users:
+		for user in cls._users:
 			portfolio = user.api.list_positions()
 			for position in portfolio:
 				Stock.trailing_stop(position.symbol, user.api, position.qty)
 				
-	def users_sell():
+	@classmethod
+	def users_sell(cls):
 		print('All users are selling...')
-		for user in User._users:
+		for user in cls._users:
 			portfolio = user.api.list_positions()
 			for position in portfolio:
 					Stock.sell_named_stock(position.symbol, user.api, position.qty)
@@ -356,18 +350,48 @@ class User:
 
 class backtestUser(User):
 	@classmethod
-	def update_users(cls, tradeapi):
-		cls.get_users()
-		
-	@classmethod
 	def get_users(cls):
-		print('Getting different users')
 		users = []
 		user_dict = dict(email='BackTestUser', keyID='BackTestID', secret_key='BackTestSecretKey')
 		users.append(user_dict)
 		return users
+	
+	
+	@classmethod
+	def set_time(cls, day=2, month=1, year=2019, hour=1, minute=1, second=1):
+		for user in cls._users:
+			user.api.get_clock().set_time(day=day, month=month, year=year, hour=hour, minute=minute, second=second)
+
+	@classmethod
+	def next_day(cls):
+		for user in cls._users:
+			user.api.get_clock().next_day()
+			print(user.api.get_clock().get_time())
+			user.api.update_equity()
+	
+	@classmethod
+	def get_time():
+		return cls._users[0].api.get_clock().get_time()
 		
 	@classmethod
 	def get_stats(cls):
-		print('back test log')
+		print('=========================================================')
+		for user in cls._users:
+			# Status
+			print(user.info['email'] + ' is ' + str(user.get_status()))
+		print('=========================================================')
+		for user in cls._users:
+			# Equity
+			print(user.info['email'] + ' has equity of ' + str(user.get_equity()))
+			'''
+		print('=========================================================')
+		for user in cls._users:
+			# Gain
+			print(user.info['email'] + ' has buying power of ' + str(user.get_buying_power()))
+			'''
+		print('=========================================================')
+		for user in cls._users:
+			# Gain
+			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
+		
 		
