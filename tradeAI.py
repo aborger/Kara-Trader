@@ -18,7 +18,6 @@ def backtest():
 	User.get_stats()
 	trade(True, '1D')
 	User.next_day()
-	User.get_stats()
 	quick_sell()
 	User.get_stats()
 	
@@ -108,7 +107,6 @@ if __name__ == '__main__':
 	# Run based on arguments
 	if args.b:
 		import python.backtest_api as tradeapi
-		LOGDIR = 'data/backTest/logs/'
 		from python.user_data.user import backtestUser as User
 		User.update_users(args.p, tradeapi)
 		backtest()

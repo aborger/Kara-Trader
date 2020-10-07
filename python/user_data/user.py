@@ -366,7 +366,6 @@ class backtestUser(User):
 	def next_day(cls):
 		for user in cls._users:
 			user.api.get_clock().next_day()
-			print(user.api.get_clock().get_time())
 			user.api.update_equity()
 	
 	@classmethod

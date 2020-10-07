@@ -1,6 +1,6 @@
 import alpaca_trade_api as tradeapi
 from python.user_data.user import User as alpacaUser
-import pandas as pd
+import datetime
 
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
@@ -22,9 +22,15 @@ class api:
 		return self.clock
 	
 	def get_barset(self, symbol, timeframe, limit):
-		NY = 'America/New_York'
-		start=pd.Timestamp('2019-01-01', tz=NY).isoformat()
-		barset = api._alpacaAPI.get_barset(symbol, timeframe, limit=limit, start=start)
+		new_limit = self.clock.timestamp
+		barset = api._alpacaAPI.get_barset(symbol, timeframe, limit=limit + new_limit)
+		barset = barset[symbol]
+		new_barset = []
+		for bar in range(0,limit):
+			new_barset.append(barset[bar])
+		barset = {
+			symbol: new_barset
+		}
 		return barset
 		
 	def list_positions(self):
@@ -36,8 +42,7 @@ class api:
 			price = self.get_current(position.symbol)
 			new_equity += price * position.qty
 		self.account.last_equity = self.account.equity
-		print('new_equity = ' + str(new_equity))
-		self.account.equity = new_equity + self.account.buying_power
+		self.account.equity = float(new_equity + self.account.buying_power)
 			
 	def submit_order(self, symbol, qty, side, type, time_in_force):
 		# Get price
@@ -57,19 +62,17 @@ class api:
 class Clock:
 	def __init__(self):
 		self.is_open = True
-		NY = 'America/New_York'
-		self.real_time = pd.Timestamp('2019-01-02', tz=NY).isoformat()
+		self.real_time = datetime.datetime.now()
 
-		self.timestamp = self.real_time
-		#self.timestamp = self.timestamp.replace(month=self.timestamp.month - 1)
+		self.timestamp = 0
 		
 	def set_time(self, day, month, year, hour, minute, second):
-		#self.timestamp = datetime.datetime(year, month, day, hour, minute, second)
-		self.timestamp = self.real_time
+		self.timestamp = datetime.datetime(year, month, day, hour, minute, second)
+		self.timestamp = self.real_time - self.timestamp
+		self.timestamp = self.timestamp.days
 		
 	def next_day(self):
-		#self.timestamp = self.timestamp.replace(day=self.timestamp.day + 10)
-		self.timestamp = self.real_time
+		self.timestamp = self.timestamp - 1
 		
 	def get_time(self):
 		return self.timestamp
