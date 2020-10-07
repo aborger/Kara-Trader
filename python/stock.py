@@ -2,12 +2,12 @@ from python.time_frame import Time_frame
 BACKTEST = 'data/backTest/'
 
 class Stock:
-	_stocks = []
 	_api = 0
 	_period = 0
 	_loss_percent = .01
 	
 	def setup(NUMBARS, model, api, period):
+		Stock._stocks = []
 		Time_frame.setup(NUMBARS, model, api)
 		Stock._api = api
 		Stock._period = Stock._convert_frame_name(period)

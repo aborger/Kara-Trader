@@ -62,7 +62,7 @@ class api:
 class Clock:
 	def __init__(self):
 		self.is_open = True
-		self.real_time = datetime.datetime.now()
+		self.real_time = datetime.datetime.today()
 
 		self.timestamp = 0
 		
@@ -74,8 +74,6 @@ class Clock:
 	def next_day(self):
 		self.timestamp = self.timestamp - 1
 		
-	def get_time(self):
-		return self.timestamp
 		
 		
 	

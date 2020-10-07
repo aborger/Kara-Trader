@@ -15,11 +15,10 @@ def train():
 	
 def backtest():
 	User.set_time()
-	User.get_stats()
-	trade(True, '1D')
-	User.next_day()
-	quick_sell()
-	User.get_stats()
+	for day in range(0,10):
+		log()
+		trade(False, '1D')
+		User.next_day()
 	
 def test():
 	User.get_stats()

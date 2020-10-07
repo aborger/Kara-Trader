@@ -114,6 +114,12 @@ class User:
 			# Gain
 			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
 			
+	@classmethod
+	def get_time(cls):
+		t = time.localtime()
+		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
+		return current_time
+	
 	# Overall stats
 	@classmethod
 	def log(cls, LOGDIR):
@@ -131,8 +137,7 @@ class User:
 			log = open(LOGDIR + user.info['email'] + '.csv', 'a')
 			
 			# Time
-			t = time.localtime()
-			current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
+			current_time = cls.get_time()
 			log.write(current_time + ', ')
 			
 			# Equity
@@ -144,7 +149,7 @@ class User:
 		import pandas as pd
 		import numpy as np
 		gain_sum = 0.0
-		for user in User._users:
+		for user in cls._users:
 			print(user.info['email'])
 			log = pd.read_csv(LOGDIR + user.info['email'] + '.csv', sep=r'\s*,\s*', engine='python')
 			log = log.to_numpy()
@@ -152,19 +157,17 @@ class User:
 			previous = end - 1
 			try:
 				gain = float(log[end][1]) / float(log[previous][1])
-				gain = (gain -1) * 100
+				gain = (gain -1)
 			except ZeroDivisionError:
 				print(user.info['email'] + ' is empty')
 				gain = 0
 				pass
 			except:
 				raise
-			print(gain)
 			if gain != 'nan':
 				gain_sum += gain
 			
 		avg_gain = gain_sum / len(User._users)
-		print(avg_gain)
 		
 		# Adding average gain to 1main
 		# Getting previous account value
@@ -184,7 +187,6 @@ class User:
 		
 		# Average Account
 		new_equity = last_equity + last_equity * avg_gain
-		print(new_equity)
 		logw.write(str(new_equity) + '\n')
 		
 	def view(LOGDIR):
@@ -369,8 +371,8 @@ class backtestUser(User):
 			user.api.update_equity()
 	
 	@classmethod
-	def get_time():
-		return cls._users[0].api.get_clock().get_time()
+	def get_time(cls):
+		return str(cls._users[0].api.get_clock().timestamp)
 		
 	@classmethod
 	def get_stats(cls):
