@@ -28,12 +28,14 @@ SAMPLE_RANGE_NAME = 'Form Responses 1'
 
 class User:
 	_users = []
-	def update_users(is_paper, tradeapi):
+
+	@classmethod
+	def update_users(cls, is_paper, tradeapi):
 		print('Getting users...')
 		# reset user list
 		User._users = []
 		# gets user data
-		user_data = get_users()
+		user_data = User.get_users()
 		# adds each user to user list
 		for user in user_data:
 			new_user = User(user, tradeapi)
@@ -47,7 +49,8 @@ class User:
 		for user in User._users:
 			print(user.info['email'])
 				
-	def get_api():
+	@classmethod
+	def get_api(cls):
 		return User._users[0].api
 		
 	# Individual stats
@@ -75,7 +78,8 @@ class User:
 			formatted_gain = "{:.2f}".format(gain)
 			return formatted_gain
 			
-	def graph(file):
+	@classmethod
+	def graph(cls, file):
 		import pandas as pd
 		import matplotlib
 		log = pd.read_csv(file, sep=r'\s*,\s*', engine='python')
@@ -92,7 +96,8 @@ class User:
 		#plt.savefig('data/results/stock' + str(stock) + '/training' + str(ID) + '.png')
 		plt.show()
 	
-	def get_stats():
+	@classmethod
+	def get_stats(cls):
 		print('=========================================================')
 		for user in User._users:
 			# Status
@@ -107,7 +112,8 @@ class User:
 			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
 			
 	# Overall stats
-	def log(LOGDIR):
+	@classmethod
+	def log(cls, LOGDIR):
 		import os
 		import time
 		print('logging...')
@@ -266,7 +272,6 @@ class User:
 							base_url = 'https://api.alpaca.markets')
 		try:
 			self.api.get_account()
-			
 		except tradeapi.rest.APIError:
 			self.api = tradeapi.REST(key_id = self.info['keyID'],
 						secret_key = self.info['secret_key'],
@@ -279,77 +284,90 @@ class User:
 			else:
 				print(self.info['email'] + ' is paper account')
 
-def get_users():
+	@classmethod
+	def get_users(cls):
 
-	"""Shows basic usage of the Sheets API.
+		creds = None
 
-	Prints values from a sample spreadsheet.
+		# The file token.pickle stores the user's access and refresh tokens, and is
 
-	"""
+		# created automatically when the authorization flow completes for the first
 
-	creds = None
+		# time.
+		path_to_user_data = 'python/user_data/'
+		if os.path.exists(path_to_user_data + 'token.pickle'):
 
-	# The file token.pickle stores the user's access and refresh tokens, and is
+			with open(path_to_user_data + 'token.pickle', 'rb') as token:
 
-	# created automatically when the authorization flow completes for the first
+				creds = pickle.load(token)
 
-	# time.
-	path_to_user_data = 'python/user_data/'
-	if os.path.exists(path_to_user_data + 'token.pickle'):
+		# If there are no (valid) credentials available, let the user log in.
 
-		with open(path_to_user_data + 'token.pickle', 'rb') as token:
+		if not creds or not creds.valid:
 
-			creds = pickle.load(token)
+			if creds and creds.expired and creds.refresh_token:
 
-	# If there are no (valid) credentials available, let the user log in.
+				creds.refresh(Request())
 
-	if not creds or not creds.valid:
+			else:
 
-		if creds and creds.expired and creds.refresh_token:
+				flow = InstalledAppFlow.from_client_secrets_file(
 
-			creds.refresh(Request())
+					path_to_user_data+ 'credentials.json', SCOPES)
+
+				creds = flow.run_local_server(port=0)
+
+			# Save the credentials for the next run
+
+			with open(path_to_user_data + 'token.pickle', 'wb') as token:
+
+				pickle.dump(creds, token)
+
+
+
+		service = build('sheets', 'v4', credentials=creds)
+
+
+
+		# Call the Sheets API
+
+		sheet = service.spreadsheets()
+
+		result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
+
+									range=SAMPLE_RANGE_NAME).execute()
+
+		user_values = result.get('values', [])
+
+
+
+		if not user_values:
+
+			print('No data found.')
 
 		else:
+			
+			users = []
+			user_values.pop(0)
+			for user in user_values:
+				user_dict = dict(email=user[1], keyID=user[2], secret_key=user[3])
+				users.append(user_dict)
+			return users
 
-			flow = InstalledAppFlow.from_client_secrets_file(
-
-				path_to_user_data+ 'credentials.json', SCOPES)
-
-			creds = flow.run_local_server(port=0)
-
-		# Save the credentials for the next run
-
-		with open(path_to_user_data + 'token.pickle', 'wb') as token:
-
-			pickle.dump(creds, token)
-
-
-
-	service = build('sheets', 'v4', credentials=creds)
-
-
-
-	# Call the Sheets API
-
-	sheet = service.spreadsheets()
-
-	result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID,
-
-								range=SAMPLE_RANGE_NAME).execute()
-
-	user_values = result.get('values', [])
-
-
-
-	if not user_values:
-
-		print('No data found.')
-
-	else:
+class backtestUser(User):
+	@classmethod
+	def update_users(cls, tradeapi):
+		cls.get_users()
 		
+	@classmethod
+	def get_users(cls):
+		print('Getting different users')
 		users = []
-		user_values.pop(0)
-		for user in user_values:
-			user_dict = dict(email=user[1], keyID=user[2], secret_key=user[3])
-			users.append(user_dict)
+		user_dict = dict(email='BackTestUser', keyID='BackTestID', secret_key='BackTestSecretKey')
+		users.append(user_dict)
 		return users
+		
+	@classmethod
+	def get_stats(cls):
+		print('back test log')
+		

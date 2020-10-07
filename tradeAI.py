@@ -15,41 +15,24 @@ def train():
 	
 
 	
-def test(is_paper):
-	from python.user_data.user import User
-	User.update_users(is_paper)
+def test():
 	User.get_stats()
 	
-def log(is_paper):
-
-	from python.user_data.user import User
-	User.update_users(is_paper)
-	
+def log():
 	User.log(LOGDIR)
 	
-def read(is_paper):
-
-	from python.user_data.user import User
-	User.update_users(is_paper)
-	
+def read():
 	User.view(LOGDIR)
 	
-def quick_sell(is_paper):
-	# update users first to gain access to the api
-	from python.user_data.user import User
-	User.update_users(is_paper)
-	
+def quick_sell():
+
 	# Sell any open positions
 	User.users_sell()
 	
 def trailing(is_paper):
-	# Update user
-	from python.user_data.user import User
-	User.update_users(is_paper)
-	
 	User.users_trailing()
 
-def buy(is_test, time_period, is_paper):
+def trade(is_test, time_period):
 		
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
@@ -69,9 +52,6 @@ def buy(is_test, time_period, is_paper):
 	from tensorflow import keras
 	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 	
-	# update users first to gain access to the api
-	from python.user_data.user import User
-	User.update_users(is_paper, tradeapi)
 	
 	# setup stocks
 	from python.stock import Stock
@@ -89,8 +69,6 @@ def buy(is_test, time_period, is_paper):
 		User.users_sell()
 		# Buy the best stocks
 		User.users_buy(best_stocks)
-		
-		User.users_sell()
 	else:
 		print('Stock market is not open today.')
 		
@@ -103,7 +81,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read'")
+						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read'")
 	# Test
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -122,28 +100,34 @@ if __name__ == '__main__':
 	# Run based on arguments
 	if args.b:
 		import python.backtest_api as tradeapi
+		LOGDIR = 'data/backTest/logs/'
+		from python.user_data.user import backtestUser as User
+		User.update_users(tradeapi)
 	else:
+		print('I screwed up')
 		import alpaca_trade_api as tradeapi
+		from python.user_data.user import User
+		User.update_users(args.p, tradeapi)
 	if args.command == 'train':
 		train()
 
 	elif args.command == 'test':
-		test(args.p)
+		test()
 
-	elif args.command == 'buy':
-		buy(args.t, args.time, args.p)
+	elif args.command == 'trade':
+		trade(args.t, args.time,)
 		
 	elif args.command == 'sell':
-		quick_sell(args.p)
+		quick_sell()
 		
 	elif args.command == 'trail':
-		trailing(args.p)
+		trailing()
 	
 	elif args.command == 'log':
-		log(args.p)
+		log()
 		
 	elif args.command == 'read':
-		read(args.p)
+		read()
 	else:
 		raise InputError("Command must be either 'train', 'run', or 'view'")
 

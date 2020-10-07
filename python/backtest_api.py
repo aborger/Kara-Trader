@@ -1,10 +1,10 @@
 import alpaca_trade_api as tradeapi
-from python.user_data.user import User
+from python.user_data.user import User as alpacaUser
 import datetime
 
 class api:
-	User.update_users(is_paper=True, tradeapi=tradeapi)
-	_alpacaAPI = User.get_api()
+	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
+	_alpacaAPI = alpacaUser.get_api()
 	def __init__(self):
 		self.clock = Clock()
 		self.account = Account()
@@ -100,5 +100,4 @@ def REST(key_id, secret_key, base_url):
 class rest:
 	class APIError(Exception): 
 		print('APIError has occured')
-		pass
 		
