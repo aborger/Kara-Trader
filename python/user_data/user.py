@@ -354,7 +354,9 @@ class backtestUser(User):
 	@classmethod
 	def get_users(cls):
 		users = []
-		user_dict = dict(email='BackTestUser', keyID='BackTestID', secret_key='BackTestSecretKey')
+		user_dict = dict(email='BackTestUser1', keyID='BackTest1', secret_key=1000)
+		users.append(user_dict)
+		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
 		users.append(user_dict)
 		return users
 	

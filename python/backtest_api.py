@@ -5,9 +5,9 @@ import datetime
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
 	_alpacaAPI = alpacaUser.get_api()
-	def __init__(self):
+	def __init__(self, value):
 		self.clock = Clock()
-		self.account = Account()
+		self.account = Account(value)
 		
 	def get_current(self, symbol):
 		barset = self.get_barset(symbol, '1Min', 1)
@@ -78,11 +78,11 @@ class Clock:
 		
 	
 class Account:
-	def __init__(self):
+	def __init__(self, value):
 		self.portfolio = []
-		self.equity = 1000
-		self.last_equity = 900
-		self.buying_power = 1000
+		self.equity = value
+		self.last_equity = value
+		self.buying_power = value
 		self.status = 'Active'
 		
 	def add_position(self, position):
@@ -119,7 +119,7 @@ class Position:
 		self.entry_price = entry_price
 
 def REST(key_id, secret_key, base_url):
-		new_api = api()
+		new_api = api(secret_key)
 		return new_api
 		
 class rest:

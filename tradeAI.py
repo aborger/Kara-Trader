@@ -15,7 +15,7 @@ def train():
 	
 def backtest():
 	User.set_time()
-	for day in range(0,10):
+	for day in range(0,30):
 		log()
 		trade(False, '1D')
 		User.next_day()
