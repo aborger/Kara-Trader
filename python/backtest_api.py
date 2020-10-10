@@ -1,6 +1,8 @@
 import alpaca_trade_api as tradeapi
 from python.user_data.user import User as alpacaUser
 import datetime
+import pandas as pd
+STOCKDIR = 'data/backtest_stocks/'
 
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
@@ -22,12 +24,21 @@ class api:
 		return self.clock
 	
 	def get_barset(self, symbol, timeframe, limit):
-		new_limit = self.clock.timestamp
-		barset = api._alpacaAPI.get_barset(symbol, timeframe, limit=limit + new_limit)
-		barset = barset[symbol]
+
+		log = pd.read_csv(STOCKDIR + symbol + '.csv', sep=r'\s*,\s*', engine='python')
+		log = log.to_numpy()
 		new_barset = []
-		for bar in range(0,limit):
-			new_barset.append(barset[bar])
+		# days_past starts at 10 meaning first day it will start at row 10 providing space to predict
+		for row in range(self.clock.days_past - limit, self.clock.days_past):
+			o = log[row][0]
+			c = log[row][1]
+			h = log[row][2]
+			l = log[row][3]
+			v = log[row][4]
+			#new_bar = Bar(log[row][0], log[row][1], log[row][2], log[row][3], log[row][4])
+			new_bar = Bar(o, c, h, l, v)
+
+			new_barset.append(new_bar)
 		barset = {
 			symbol: new_barset
 		}
@@ -57,22 +68,49 @@ class api:
 		else:
 			print('Not an option')
 		
+	def get_data(stocks, timeframe):
+		working_stocks = []
+		for stock in stocks:
+			working = True
+			print('Getting data for ' + stock)
+			barset = api._alpacaAPI.get_barset(stock, timeframe, 448 + 10)
 
-		
+			symbol_bars = barset[stock]
+			if len(symbol_bars) != 458:
+				print('This stock doesnt have enough data')
+			else:
+				# Always rewrite because number of bars changes
+				# Start log
+				log = open(STOCKDIR + stock + '.csv','w')
+				log.write('Open, Close, High, Low, Volume\n')
+				
+				
+				for barNum in range(0, len(symbol_bars)):
+					log.write(str(symbol_bars[barNum].o) + ',' + str(symbol_bars[barNum].c) + ',' + str(symbol_bars[barNum].h) + ',' + str(symbol_bars[barNum].l) + ',' + str(symbol_bars[barNum].v) + '\n')
+				
+				log.close()
+
+				working_stocks.append(stock)
+		return working_stocks
+
 class Clock:
 	def __init__(self):
 		self.is_open = True
-		self.real_time = datetime.datetime.today()
-
-		self.timestamp = 0
-		
+		#self.real_time = datetime.datetime.today()
+		self.days_past = 10 # usually 10
+		# so days_past will be at 1/2/19
+		self.timestamp = 448 + self.days_past
+	'''	
 	def set_time(self, day, month, year, hour, minute, second):
 		self.timestamp = datetime.datetime(year, month, day, hour, minute, second)
+
 		self.timestamp = self.real_time - self.timestamp
-		self.timestamp = self.timestamp.days
-		
+
+		#self.timestamp = self.timestamp.days
+	'''	
+
 	def next_day(self):
-		self.timestamp = self.timestamp - 1
+		self.days_past += 1
 		
 		
 		
@@ -117,6 +155,14 @@ class Position:
 		self.symbol = symbol
 		self.qty = qty
 		self.entry_price = entry_price
+
+class Bar:
+	def __init__(self, o, c, h, l, v):
+		self.o = o
+		self.c = c
+		self.h = h
+		self.l = l
+		self.v = v
 
 def REST(key_id, secret_key, base_url):
 		new_api = api(secret_key)

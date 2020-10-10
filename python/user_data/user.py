@@ -359,13 +359,14 @@ class backtestUser(User):
 		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
 		users.append(user_dict)
 		return users
-	
+	'''
 	
 	@classmethod
+	# went to 3/16/2018
 	def set_time(cls, day=2, month=1, year=2019, hour=1, minute=1, second=1):
 		for user in cls._users:
 			user.api.get_clock().set_time(day=day, month=month, year=year, hour=hour, minute=minute, second=second)
-
+	'''
 	@classmethod
 	def next_day(cls):
 		for user in cls._users:
@@ -374,7 +375,7 @@ class backtestUser(User):
 	
 	@classmethod
 	def get_time(cls):
-		return str(cls._users[0].api.get_clock().timestamp)
+		return str(cls._users[0].api.get_clock().days_past - 10)
 		
 	@classmethod
 	def get_stats(cls):

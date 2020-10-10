@@ -59,7 +59,7 @@ class Stock:
 			except:
 				raise
 			else:
-				print(stock.symbol + "'s gain is " + str(stock.frames[Stock._period].gain))
+				#print(stock.symbol + "'s gain is " + str(stock.frames[Stock._period].gain))
 				if len(max_stocks) < num_stocks:
 					max_stocks.append(stock)
 				elif stock.frames[Stock._period].gain > max_stocks[num_stocks - 1].frames[Stock._period].gain:
