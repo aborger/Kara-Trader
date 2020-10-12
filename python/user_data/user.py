@@ -167,10 +167,15 @@ class User:
 			if gain != 'nan':
 				gain_sum += gain
 			
-		avg_gain = gain_sum / len(User._users)
+		avg_gain = gain_sum / len(cls._users)
 		
 		# Adding average gain to 1main
 		# Getting previous account value
+		if not os.path.exists(LOGDIR + '1main' + '.csv'):
+			# Start log
+			log = open(LOGDIR + '1main' + '.csv','w')
+			log.write('Time, Average Gain, 1G Account\n,,1000\n')
+			log.close()
 		logr = pd.read_csv(LOGDIR + '1main.csv', sep=r'\s*,\s*', engine='python')
 		logr = logr.to_numpy()
 		end = len(logr) -1
@@ -198,7 +203,8 @@ class User:
 	def users_buy(cls, best_stocks):
 		# Buy stocks for each user
 		for user in cls._users:
-			print('User: ' + user.info['email'])
+			#print('User: ' + user.info['email'])
+			print('                 Buying   ')
 			print('========================================')
 			# find cheapest stock to make sure we buy as much as possible
 			cheapest_price = 999999
@@ -247,7 +253,8 @@ class User:
 				
 	@classmethod
 	def users_sell(cls):
-		print('All users are selling...')
+		print('                Selling')
+		print('========================================')
 		for user in cls._users:
 			portfolio = user.api.list_positions()
 			for position in portfolio:
@@ -356,8 +363,8 @@ class backtestUser(User):
 		users = []
 		user_dict = dict(email='BackTestUser1', keyID='BackTest1', secret_key=1000)
 		users.append(user_dict)
-		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
-		users.append(user_dict)
+		#user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
+		#users.append(user_dict)
 		return users
 	'''
 	
@@ -372,7 +379,18 @@ class backtestUser(User):
 		for user in cls._users:
 			user.api.get_clock().next_day()
 			user.api.update_equity()
+
+	@classmethod
+	def get_portfolio(cls):
+		for user in cls._users:
+			positions = user.api.list_positions()
+			for position in positions:
 	
+				print('--------------')
+				print(position.symbol)
+				print('QTY: ' + str(position.qty))
+				print('Price: ' + str(position.entry_price))
+
 	@classmethod
 	def get_time(cls):
 		return str(cls._users[0].api.get_clock().days_past - 10)

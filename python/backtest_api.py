@@ -3,6 +3,9 @@ from python.user_data.user import User as alpacaUser
 import datetime
 import pandas as pd
 STOCKDIR = 'data/backtest_stocks/'
+#448 for 2019, 700 for 2018
+DAYS_TO_COLLECT = 448
+NUMBARS = 10
 
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
@@ -73,10 +76,10 @@ class api:
 		for stock in stocks:
 			working = True
 			print('Getting data for ' + stock)
-			barset = api._alpacaAPI.get_barset(stock, timeframe, 448 + 10)
+			barset = api._alpacaAPI.get_barset(stock, timeframe, DAYS_TO_COLLECT + NUMBARS)
 
 			symbol_bars = barset[stock]
-			if len(symbol_bars) != 458:
+			if len(symbol_bars) != DAYS_TO_COLLECT + NUMBARS:
 				print('This stock doesnt have enough data')
 			else:
 				# Always rewrite because number of bars changes
@@ -97,9 +100,10 @@ class Clock:
 	def __init__(self):
 		self.is_open = True
 		#self.real_time = datetime.datetime.today()
-		self.days_past = 10 # usually 10
+		self.days_past = NUMBARS # usually 10
 		# so days_past will be at 1/2/19
-		self.timestamp = 448 + self.days_past
+		self.timestamp = DAYS_TO_COLLECT + self.days_past #448 for 2019, 700 for 2018
+		# dont forget to change in get_data too
 	'''	
 	def set_time(self, day, month, year, hour, minute, second):
 		self.timestamp = datetime.datetime(year, month, day, hour, minute, second)
@@ -142,13 +146,24 @@ class Account:
 		for positions in self.portfolio:
 			if positions.symbol == position.symbol:
 				positions.qty -= position.qty
+				if positions.qty == 0:
+					self.portfolio.remove(positions)
 				exists = True
 				
 		self.buying_power += value
-		print('Value of ' + str(value))
+		#print('Value of ' + str(value))
 				
 		if not exists:
 			print('PositionNotInPortfolio')
+
+	def print_portfolio(self):
+		for position in self.portfolio:
+			print('         Back          ')
+			print('-----------------------')
+			print('Symbol: ' + position.symbol)
+			print('Qty: ' + str(position.qty))
+			print('Price: ' + str(position.entry_price))
+			print('Value: ' + str(position.qty * position.entry_price))
 		
 class Position:
 	def __init__(self, symbol, qty, entry_price):

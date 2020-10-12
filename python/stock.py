@@ -49,7 +49,7 @@ class Stock:
 				return stock.frames[Stock._period].gain
 		
 		# Currently only using 5 max gains
-		print("Getting highest gain...")
+		#print("Getting highest gain...")
 		max_stocks = []
 		for stock in Stock._stocks:
 			try:
@@ -85,9 +85,10 @@ class Stock:
 		bought_price = self.frames[0].get_current_price()
 
 		#self.stop_price = bought_price - (bought_price * Stock._loss_percent)
-		print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
-				+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
+		#print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
+		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
+		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
@@ -110,8 +111,8 @@ class Stock:
 			trail_percent=1)
 			
 	def sell(self, api, quantity):
-		print('=====================================')
-		print ('Sold ' + self.symbol)
+		#print('=====================================')
+		#print ('Sold ' + self.symbol)
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
@@ -120,8 +121,8 @@ class Stock:
 			time_in_force='gtc')
 			
 	def sell_named_stock(name, api, quantity):
-		print('=====================================')
-		print ('Sold ' + name)
+		#print('=====================================')
+		print ('Sold ' + name + ' qty: ' + str(quantity))
 		#try:
 		api.submit_order(
 			symbol=name,
