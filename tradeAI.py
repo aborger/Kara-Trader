@@ -18,11 +18,21 @@ def train():
 	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
 	
 def backtest(sp, numdays, time_frame, model):
-	stocks = tradeapi.api.get_data(sp, time_frame)
+	sp = tradeapi.api.get_data(sp, time_frame)
+	# setup stocks
+	from python.stock import Stock
+	Stock.setup(NUMBARS, model, User.get_api(), time_frame)
+	for symbol in sp:
+		this_stock = Stock(symbol)
+
 	for day in range(0, numdays):
+		print('=======================================================')
 		log()
-		trade(time_frame, stocks, model)
+		trade(model, Stock)
+		User.get_portfolio()
 		User.next_day()
+		print('Next...........')
+		User.get_portfolio()
 
 def test():
 	User.get_stats()
@@ -41,27 +51,20 @@ def quick_sell():
 def trailing(is_paper):
 	User.users_trailing()
 
-def trade(time_period, sp, model):
+def trade(model, Stock):
 		
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
 	import pandas as pd
 	from time import sleep
 
-	
-	
-	# setup stocks
-	from python.stock import Stock
-	Stock.setup(NUMBARS, model, User.get_api(), time_period)
-	for symbol in sp:
-		this_stock = Stock(symbol)
-	
 
 	if User.get_api().get_clock().is_open:
+		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
 		best_stocks = Stock.collect_stocks(5)
 		# Sell any open positions
-		User.users_sell()
+		
 		# Buy the best stocks
 		User.users_buy(best_stocks)
 	else:
