@@ -54,6 +54,7 @@ class api:
 		new_equity = 0
 		for position in self.account.portfolio:
 			price = self.get_current(position.symbol)
+			position.update_price(price)
 			new_equity += price * position.qty
 		self.account.last_equity = self.account.equity
 		self.account.equity = float(new_equity + self.account.buying_power)
@@ -146,9 +147,8 @@ class Account:
 		for positions in self.portfolio:
 			if positions.symbol == position.symbol:
 				positions.qty -= position.qty
-				if positions.qty == 0:
-					self.portfolio.remove(positions)
 				exists = True
+		
 				
 		self.buying_power += value
 		#print('Value of ' + str(value))
@@ -156,13 +156,22 @@ class Account:
 		if not exists:
 			print('PositionNotInPortfolio')
 
+	def remove_empty(self):
+		remove_list = []
+		for position in self.portfolio:
+			if position.qty == 0:
+				remove_list.append(position)
+				
+		for position in remove_list:
+			self.portfolio.remove(position)
+			
 	def print_portfolio(self):
 		for position in self.portfolio:
 			print('         Back          ')
 			print('-----------------------')
 			print('Symbol: ' + position.symbol)
 			print('Qty: ' + str(position.qty))
-			print('Price: ' + str(position.entry_price))
+			print('Price: ' + str(position.current_price))
 			print('Value: ' + str(position.qty * position.entry_price))
 		
 class Position:
@@ -170,6 +179,10 @@ class Position:
 		self.symbol = symbol
 		self.qty = qty
 		self.entry_price = entry_price
+		self.current_price = entry_price
+		
+	def update_price(self, new_price):
+		self.current_price = new_price
 
 class Bar:
 	def __init__(self, o, c, h, l, v):

@@ -26,12 +26,15 @@ def backtest(sp, numdays, time_frame, model):
 		this_stock = Stock(symbol)
 
 	for day in range(0, numdays):
-		print('=======================================================')
 		log()
 		trade(model, Stock)
+		for user in User.get_User():
+			user.api.get_account().remove_empty()
+			
 		User.get_portfolio()
 		User.next_day()
-		print('Next...........')
+		print('                       Next Day')
+		print('=======================================================')
 		User.get_portfolio()
 
 def test():
@@ -62,6 +65,7 @@ def trade(model, Stock):
 	if User.get_api().get_clock().is_open:
 		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
+		print('Calculating best stocks...')
 		best_stocks = Stock.collect_stocks(5)
 		# Sell any open positions
 		

@@ -123,7 +123,6 @@ class Stock:
 	def sell_named_stock(name, api, quantity):
 		#print('=====================================')
 		print ('Sold ' + name + ' qty: ' + str(quantity))
-		#try:
 		api.submit_order(
 			symbol=name,
 			qty=quantity,
@@ -131,7 +130,7 @@ class Stock:
 			type='market',
 			time_in_force='gtc')
 		#except:
-			#print('Cannot sell due to day trade restrictions')
+		#	print('Cannot sell due to day trade restrictions')
 		#finally:
 			#pass
 

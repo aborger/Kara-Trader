@@ -61,6 +61,10 @@ class User:
 		account = self.api.get_account()
 		status = account.status
 		return status
+	
+	@classmethod
+	def get_User(cls):
+		return cls._users
 		
 	def get_buying_power(self):
 		account = self.api.get_account()
@@ -258,7 +262,7 @@ class User:
 		for user in cls._users:
 			portfolio = user.api.list_positions()
 			for position in portfolio:
-					Stock.sell_named_stock(position.symbol, user.api, position.qty)
+				Stock.sell_named_stock(position.symbol, user.api, position.qty)
 		
 			
 	
@@ -363,8 +367,8 @@ class backtestUser(User):
 		users = []
 		user_dict = dict(email='BackTestUser1', keyID='BackTest1', secret_key=1000)
 		users.append(user_dict)
-		#user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
-		#users.append(user_dict)
+		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
+		users.append(user_dict)
 		return users
 	'''
 	
@@ -383,13 +387,18 @@ class backtestUser(User):
 	@classmethod
 	def get_portfolio(cls):
 		for user in cls._users:
+			print('       ' + user.info['email'])
+			print('-------------------------------')
+			print('Last: ' + str(user.api.get_account().last_equity))
+			print('Equity: ' + str(user.api.get_account().equity))
 			positions = user.api.list_positions()
 			for position in positions:
 	
 				print('--------------')
 				print(position.symbol)
 				print('QTY: ' + str(position.qty))
-				print('Price: ' + str(position.entry_price))
+				print('Price: ' + str(position.current_price))
+				print('Value: ' + str(position.qty * position.current_price))
 
 	@classmethod
 	def get_time(cls):
