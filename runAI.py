@@ -19,7 +19,7 @@ def log():
 
 schedule.every().day.at("13:00").do(buy)
 schedule.every().day.at("07:30").do(trail)
-schedule.every().hour.do(log)
+#schedule.every().hour.do(log)
 
 while True:
    print('Waiting...')
