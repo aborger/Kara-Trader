@@ -1,8 +1,8 @@
 import alpaca_trade_api as tradeapi
-from python.user_data.user import User as alpacaUser
+from ...user import User as alpacaUser
 import datetime
 import pandas as pd
-STOCKDIR = 'data/backtest_stocks/'
+STOCKDIR = '../Stock_Data/'
 #448 for 2019, 
 #700 for 2018 (10/12/2020)
 DAYS_TO_COLLECT = 700
@@ -15,7 +15,7 @@ class api:
 		self.clock = Clock()
 		self.account = Account(value)
 		
-	def get_current(self, symbol):
+	def _get_current(self, symbol):
 		barset = self.get_barset(symbol, '1Min', 1)
 		bars = barset[symbol]
 		price = bars[0].c
@@ -26,7 +26,6 @@ class api:
 	
 	def get_clock(self):
 		return self.clock
-	
 	def get_barset(self, symbol, timeframe, limit):
 
 		log = pd.read_csv(STOCKDIR + symbol + '.csv', sep=r'\s*,\s*', engine='python')
@@ -51,10 +50,12 @@ class api:
 	def list_positions(self):
 		return self.account.portfolio
 		
-	def update_equity(self):
+	def next_day(self):
+		self.clock.next_day()
+		
 		new_equity = 0
 		for position in self.account.portfolio:
-			price = self.get_current(position.symbol)
+			price = self._get_current(position.symbol)
 			position.update_price(price)
 			new_equity += price * position.qty
 		self.account.last_equity = self.account.equity
@@ -62,7 +63,7 @@ class api:
 			
 	def submit_order(self, symbol, qty, side, type, time_in_force):
 		# Get price
-		price = self.get_current(symbol)
+		price = self._get_current(symbol)
 		
 		new_position = Position(symbol, qty, price)
 		
@@ -76,26 +77,40 @@ class api:
 	def get_data(stocks, timeframe):
 		working_stocks = []
 		for stock in stocks:
-			working = True
 			print('Getting data for ' + stock)
-			barset = api._alpacaAPI.get_barset(stock, timeframe, DAYS_TO_COLLECT + NUMBARS)
+			enough_data = False
+			try:
+				size = pd.read_csv(STOCKDIR + stock + '.csv', sep=r'\s*,\s*', engine='python').size
+				if size == 5*(DAYS_TO_COLLECT + NUMBARS):
+					print('Already have data')
+					working_stocks.append(stock)
+					enough_data =  True
+				else:
+					print(size)
+			except FileNotFoundError:
+				pass
+			except:
+				raise
 
-			symbol_bars = barset[stock]
-			if len(symbol_bars) != DAYS_TO_COLLECT + NUMBARS:
-				print('This stock doesnt have enough data')
-			else:
-				# Always rewrite because number of bars changes
-				# Start log
-				log = open(STOCKDIR + stock + '.csv','w')
-				log.write('Open, Close, High, Low, Volume\n')
-				
-				
-				for barNum in range(0, len(symbol_bars)):
-					log.write(str(symbol_bars[barNum].o) + ',' + str(symbol_bars[barNum].c) + ',' + str(symbol_bars[barNum].h) + ',' + str(symbol_bars[barNum].l) + ',' + str(symbol_bars[barNum].v) + '\n')
-				
-				log.close()
+			if not enough_data:
+				barset = api._alpacaAPI.get_barset(stock, timeframe, DAYS_TO_COLLECT + NUMBARS)
 
-				working_stocks.append(stock)
+				symbol_bars = barset[stock]
+				if len(symbol_bars) != DAYS_TO_COLLECT + NUMBARS:
+					print('This stock doesnt have enough data')
+				else:
+					# Always rewrite because number of bars changes
+					# Start log
+					log = open(STOCKDIR + stock + '.csv','w')
+					log.write('Open, Close, High, Low, Volume\n')
+					
+					
+					for barNum in range(0, len(symbol_bars)):
+						log.write(str(symbol_bars[barNum].o) + ',' + str(symbol_bars[barNum].c) + ',' + str(symbol_bars[barNum].h) + ',' + str(symbol_bars[barNum].l) + ',' + str(symbol_bars[barNum].v) + '\n')
+					
+					log.close()
+
+					working_stocks.append(stock)
 		return working_stocks
 
 class Clock:

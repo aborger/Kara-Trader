@@ -1,4 +1,4 @@
-from python.time_frame import Time_frame
+from python.Level1.Level2.time_frame import Time_frame
 BACKTEST = 'data/backTest/'
 
 class Stock:

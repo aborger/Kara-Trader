@@ -11,20 +11,17 @@ TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
 LOGDIR = 'data/logs/'
-STOCKDIR = 'data/backtest_stocks/'
+STOCKDIR = '../Stock_data/'
 
-def train():
+
+#===================================================================#
+#								Run Functions						#
+#===================================================================#
+def train(name):
 	import python.training.head_class as hc
-	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, args.name)
+	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
 	
-def backtest(sp, numdays, time_frame, model):
-	sp = tradeapi.api.get_data(sp, time_frame)
-	# setup stocks
-	from python.stock import Stock
-	Stock.setup(NUMBARS, model, User.get_api(), time_frame)
-	for symbol in sp:
-		this_stock = Stock(symbol)
-
+def backtest(numdays, model, Stock):
 	for day in range(0, numdays):
 		log()
 		trade(model, Stock)
@@ -58,7 +55,6 @@ def trade(model, Stock):
 		
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
-	import pandas as pd
 	from time import sleep
 
 
@@ -74,17 +70,51 @@ def trade(model, Stock):
 	else:
 		print('Stock market is not open today.')
 		
+#===================================================================#
+#							Helping Functions						#
+#===================================================================#
+def import_data(is_test, is_backtest, time_frame):
+	print('Loading AI...')
+	from tensorflow import keras
+	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 	
-#############################################
-# Command Line
-#############################################
+	# Load S&P500
+	print('Loading stock list...')
+	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+	df = table[0]
+	sp = df['Symbol']
+
+	sp = sp.tolist()
+	sp.remove('AFL') # AFL has wierd data
+	sp.remove('DOV') # DOV also did not match historical values
+	
+	if is_test:
+		sp = sp[0:20]
+
+
+	if is_backtest:
+		sp = tradeapi.api.get_data(sp, time_frame)
+		
+	# setup stocks
+	from python.Level1.stock import Stock
+	Stock.setup(NUMBARS, model, User.get_api(), time_frame)
+	for symbol in sp:
+		this_stock = Stock(symbol)
+		
+	
+	
+	return Stock, model
+	
+#===================================================================#
+#								Command Line						#
+#===================================================================#
 
 if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
 						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read'")
-	# Test
+	
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
 						
@@ -100,62 +130,35 @@ if __name__ == '__main__':
 			
 	args = parser.parse_args()
 
-	# Run based on arguments
+
+	
+	#					Run based on arguments
+	#------------------------------------------------------------#
+	# Backtest
 	if args.b:
 		num_days = input("Enter the number of days to backtest: ") 
-		import python.backtest_api as tradeapi
-		from python.user_data.user import backtestUser as User
+		import python.Level1.Level2.backtest_api as tradeapi
+		from python.user import backtestUser as User
 		User.update_users(args.p, tradeapi)
 		
-		# Load S&P500
-		print('Loading stock list...')
-		table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-		df = table[0]
-		sp = df['Symbol']
+		Stock, model = import_data(args.t, args.b, args.time)
 
-		if args.t:
-			sp = sp[0:11]
-
-		sp = sp.tolist()
-		sp.remove('AFL') # AFL has wierd data
-		sp.remove('DOV') # DOV also did not match historical values
-
-		print('Loading AI...')
-		from tensorflow import keras
-		model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
-
-		backtest(sp, int(num_days), args.time, model)
+		backtest(int(num_days), model, Stock)
 	else:
+	# Everything else
 		import alpaca_trade_api as tradeapi
 		from python.user_data.user import User
 		User.update_users(args.p, tradeapi)
 		
 		if args.command == 'train':
-			train()
+			train(args.name)
 
 		elif args.command == 'test':
 			test()
 
 		elif args.command == 'trade':
-			print('Loading AI...')
-			from tensorflow import keras
-			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 
-			# Load S&P500
-			print('Loading stock list...')
-			table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-			df = table[0]
-			sp = df['Symbol']
-
-			if args.t:
-				sp = sp[0:10]
-			
-			# setup stocks
-			from python.stock import Stock
-			Stock.setup(NUMBARS, model, User.get_api(), args.time)
-			for symbol in sp:
-				this_stock = Stock(symbol)
-
+			Stock, model = import_data(args.t, args.b, args.time)
 
 			trade(model, Stock)
 			
