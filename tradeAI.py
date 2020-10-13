@@ -147,7 +147,7 @@ if __name__ == '__main__':
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
-		from python.user_data.user import User
+		from python.user import User
 		User.update_users(args.p, tradeapi)
 		
 		if args.command == 'train':
