@@ -35,7 +35,10 @@ class Stock:
 		gain_sum = 0
 		for stock in best_stocks:
 			gain_sum += stock.frames[Stock._period].gain
-		value_per_gain = 100/gain_sum
+		if gain_sum == 0:
+			value_per_gain = 0
+		else:
+			value_per_gain = 100/gain_sum
 		stocks = []
 		for stock in best_stocks:
 			this_buy_ratio = stock.frames[Stock._period].gain * value_per_gain
@@ -89,13 +92,14 @@ class Stock:
 		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
 		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
+		'''
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='buy',
 			type='market',
 			time_in_force='gtc')
-
+		'''
 
 		
 	def trailing_stop(name, api, quantity):
@@ -113,22 +117,26 @@ class Stock:
 	def sell(self, api, quantity):
 		#print('=====================================')
 		#print ('Sold ' + self.symbol)
+		'''
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
+		'''
 			
 	def sell_named_stock(name, api, quantity):
 		#print('=====================================')
 		print ('Sold ' + name + ' qty: ' + str(quantity))
+		'''
 		api.submit_order(
 			symbol=name,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
+		'''
 		#except:
 		#	print('Cannot sell due to day trade restrictions')
 		#finally:

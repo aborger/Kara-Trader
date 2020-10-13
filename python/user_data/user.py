@@ -368,7 +368,7 @@ class backtestUser(User):
 		user_dict = dict(email='BackTestUser1', keyID='BackTest1', secret_key=1000)
 		users.append(user_dict)
 		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
-		users.append(user_dict)
+		#users.append(user_dict)
 		return users
 	'''
 	

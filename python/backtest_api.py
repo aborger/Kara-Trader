@@ -3,8 +3,9 @@ from python.user_data.user import User as alpacaUser
 import datetime
 import pandas as pd
 STOCKDIR = 'data/backtest_stocks/'
-#448 for 2019, 700 for 2018
-DAYS_TO_COLLECT = 448
+#448 for 2019, 
+#700 for 2018 (10/12/2020)
+DAYS_TO_COLLECT = 700
 NUMBARS = 10
 
 class api:

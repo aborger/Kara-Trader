@@ -62,7 +62,7 @@ def trade(model, Stock):
 	from time import sleep
 
 
-	if User.get_api().get_clock().is_open:
+	if True: #User.get_api().get_clock().is_open:
 		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
 		print('Calculating best stocks...')
@@ -133,6 +133,10 @@ if __name__ == '__main__':
 			test()
 
 		elif args.command == 'trade':
+			print('Loading AI...')
+			from tensorflow import keras
+			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+
 			# Load S&P500
 			print('Loading stock list...')
 			table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
@@ -142,11 +146,14 @@ if __name__ == '__main__':
 			if args.t:
 				sp = sp[0:10]
 			
-			print('Loading AI...')
-			from tensorflow import keras
-			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+			# setup stocks
+			from python.stock import Stock
+			Stock.setup(NUMBARS, model, User.get_api(), args.time)
+			for symbol in sp:
+				this_stock = Stock(symbol)
 
-			trade(args.time, sp, model)
+
+			trade(model, Stock)
 			
 		elif args.command == 'sell':
 			quick_sell()
