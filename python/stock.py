@@ -92,14 +92,14 @@ class Stock:
 		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
 		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
-		'''
+		
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='buy',
 			type='market',
 			time_in_force='gtc')
-		'''
+		
 
 		
 	def trailing_stop(name, api, quantity):
@@ -117,26 +117,26 @@ class Stock:
 	def sell(self, api, quantity):
 		#print('=====================================')
 		#print ('Sold ' + self.symbol)
-		'''
+		
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
-		'''
+		
 			
 	def sell_named_stock(name, api, quantity):
 		#print('=====================================')
 		print ('Sold ' + name + ' qty: ' + str(quantity))
-		'''
+		
 		api.submit_order(
 			symbol=name,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
-		'''
+		
 		#except:
 		#	print('Cannot sell due to day trade restrictions')
 		#finally:

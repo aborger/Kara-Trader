@@ -112,9 +112,13 @@ if __name__ == '__main__':
 		table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
 		df = table[0]
 		sp = df['Symbol']
-		
+
 		if args.t:
-			sp = sp[0:10]
+			sp = sp[0:11]
+
+		sp = sp.tolist()
+		sp.remove('AFL') # AFL has wierd data
+		sp.remove('DOV') # DOV also did not match historical values
 
 		print('Loading AI...')
 		from tensorflow import keras
