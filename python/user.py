@@ -10,7 +10,13 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from google.auth.transport.requests import Request
 
-from ..stock import Stock
+from python.Level1.stock import Stock
+
+import pandas as pd
+import numpy as np
+
+import os
+import time
 
 # If modifying these scopes, delete the file token.pickle.
 
@@ -87,7 +93,6 @@ class User:
 			
 	@classmethod
 	def graph(cls, file):
-		import pandas as pd
 		import matplotlib
 		log = pd.read_csv(file, sep=r'\s*,\s*', engine='python')
 		log = log.to_numpy()
@@ -127,8 +132,7 @@ class User:
 	# Overall stats
 	@classmethod
 	def log(cls, LOGDIR):
-		import os
-		import time
+
 		print('logging...')
 		for user in cls._users:
 			if not os.path.exists(LOGDIR + user.info['email'] + '.csv'):
@@ -150,8 +154,7 @@ class User:
 			log.close()
 		
 		# Get average gain
-		import pandas as pd
-		import numpy as np
+
 		gain_sum = 0.0
 		for user in cls._users:
 			print(user.info['email'])
@@ -301,7 +304,7 @@ class User:
 		# created automatically when the authorization flow completes for the first
 
 		# time.
-		path_to_user_data = 'python/user_data/'
+		path_to_user_data = 'data/user_data/'
 		if os.path.exists(path_to_user_data + 'token.pickle'):
 
 			with open(path_to_user_data + 'token.pickle', 'rb') as token:
@@ -381,8 +384,7 @@ class backtestUser(User):
 	@classmethod
 	def next_day(cls):
 		for user in cls._users:
-			user.api.get_clock().next_day()
-			user.api.update_equity()
+			user.api.next_day()
 
 	@classmethod
 	def get_portfolio(cls):
