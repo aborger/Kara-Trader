@@ -259,6 +259,10 @@ class User:
 				Stock.trailing_stop(position.symbol, user.api, position.qty)
 				
 	@classmethod
+	def cancel_orders(cls):
+		for user in cls._users:
+			user.api.cancel_all_orders()
+	@classmethod
 	def users_sell(cls):
 		print('                Selling')
 		print('========================================')

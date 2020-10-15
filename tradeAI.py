@@ -59,6 +59,7 @@ def trade(model, Stock):
 
 
 	if True: #User.get_api().get_clock().is_open:
+		User.cancel_orders()
 		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
 		print('Calculating best stocks...')
@@ -147,7 +148,7 @@ if __name__ == '__main__':
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
-		from python.user_data.user import User
+		from python.user import User
 		User.update_users(args.p, tradeapi)
 		
 		if args.command == 'train':
