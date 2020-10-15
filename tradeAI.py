@@ -17,9 +17,39 @@ STOCKDIR = '../Stock_data/'
 #===================================================================#
 #								Run Functions						#
 #===================================================================#
-def train(name):
-	import python.training.head_class as hc
-	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
+def train(name, Stock):
+	#import python.training.head_class as hc
+	#hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
+	class TrainConfig:
+		alpha = 0.5
+		alpha_decay = 0.998
+		epsilon = 1.0
+		epsilon_final = 0.05
+		n_episodes = 1000
+		warmup_episodes = 800
+	
+	from python.training.KaraV2.train_rnn import DQN
+	print('USER FOR TRAINING: ' + User.get_User()[0].info['email'])
+	stock = Stock.get_single_stock()
+	def act_buy():
+		stock.buy(User.get_api(), 1)
+		User.next_day()
+	def act_sell():
+		stock.sell(User.get_api(), 1)
+		User.next_day()
+	def act_wait():
+		print('Next Day')
+		User.next_day()
+	def observe():
+		return stock.get_prev_bars()
+	def reward():
+		return User.get_api().get_account().equity
+	def reset():
+		User.reset()
+	Q = DQN(act_buy, act_sell, act_wait, observe, reward, reset)
+	print('Training...')
+	Q.train(TrainConfig)
+	
 	
 def backtest(numdays, model, Stock):
 	for day in range(0, numdays):
@@ -89,7 +119,7 @@ def import_data(is_test, is_backtest, time_frame):
 	sp.remove('DOV') # DOV also did not match historical values
 	
 	if is_test:
-		sp = sp[0:20]
+		sp = sp[0:10]
 
 
 	if is_backtest:
@@ -136,24 +166,26 @@ if __name__ == '__main__':
 	#------------------------------------------------------------#
 	# Backtest
 	if args.b:
-		num_days = input("Enter the number of days to backtest: ") 
+	
+		
 		import python.Level1.Level2.backtest_api as tradeapi
 		from python.user import backtestUser as User
 		User.update_users(args.p, tradeapi)
 		
 		Stock, model = import_data(args.t, args.b, args.time)
 
-		backtest(int(num_days), model, Stock)
+		if args.command == 'train':
+			train(args.name, Stock)
+		else:
+			num_days = input("Enter the number of days to backtest: ") 
+			backtest(int(num_days), model, Stock)
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
 		from python.user import User
 		User.update_users(args.p, tradeapi)
 		
-		if args.command == 'train':
-			train(args.name)
-
-		elif args.command == 'test':
+		if args.command == 'test':
 			test()
 
 		elif args.command == 'trade':
@@ -166,7 +198,7 @@ if __name__ == '__main__':
 			quick_sell()
 			
 		elif args.command == 'trail':
-			trailing()
+			trailing(args.p)
 		
 		elif args.command == 'log':
 			log()

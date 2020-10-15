@@ -5,8 +5,8 @@ import pandas as pd
 STOCKDIR = '../Stock_Data/'
 #448 for 2019, 
 #700 for 2018 (10/12/2020)
-DAYS_TO_COLLECT = 700
-NUMBARS = 10
+DAYS_TO_COLLECT = 1000
+NUMBARS = 0
 
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
@@ -49,6 +49,9 @@ class api:
 		
 	def list_positions(self):
 		return self.account.portfolio
+		
+	def reset_days(self):
+		self.clock.reset_days()
 		
 	def next_day(self):
 		self.clock.next_day()
@@ -130,6 +133,8 @@ class Clock:
 		#self.timestamp = self.timestamp.days
 	'''	
 
+	def reset_days(self):
+		self.days_past = NUMBARS
 	def next_day(self):
 		self.days_past += 1
 		

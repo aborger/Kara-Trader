@@ -254,9 +254,14 @@ class User:
 	def users_trailing(cls):
 		print('Setting trailing stop for all users')
 		for user in cls._users:
+			percent = 1
+			if user.info['email'] = 'davidpaper@gmail.com':
+				percent = 0.75
+			if user.info['email'] = 'davidgoretoy123@gmail.com':
+				percent = 0.5
 			portfolio = user.api.list_positions()
 			for position in portfolio:
-				Stock.trailing_stop(position.symbol, user.api, position.qty)
+				Stock.trailing_stop(position.symbol, user.api, position.qty, percent)
 				
 	@classmethod
 	def users_sell(cls):
@@ -385,6 +390,14 @@ class backtestUser(User):
 	def next_day(cls):
 		for user in cls._users:
 			user.api.next_day()
+			
+	@classmethod
+	def reset(cls):
+		for user in cls._users:
+			user.api.reset_days()
+			account = user.api.get_account()
+			account.equity = 1000
+			account.buying_power = 1000
 
 	@classmethod
 	def get_portfolio(cls):

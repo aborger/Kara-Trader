@@ -15,6 +15,15 @@ class Stock:
 	def get_current_price(self):
 		return self.frames[Stock._period].get_current_price()
 		
+	def get_prev_bars(self):
+		list = self.frames[Stock._period].get_normalized_data()
+		li2 = sum(list, [])
+		s = ','.join(str(li2))
+		return s
+	
+	def get_single_stock():
+		return Stock._stocks[0]
+		
 	def _convert_frame_name(time_frame):
 		if time_frame == '1Min':
 			time_frame = 0
@@ -91,7 +100,7 @@ class Stock:
 		#print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
 		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
-		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
+		#print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
 		
 		api.submit_order(
 			symbol=self.symbol,
@@ -102,7 +111,7 @@ class Stock:
 		
 
 		
-	def trailing_stop(name, api, quantity):
+	def trailing_stop(name, api, quantity, percent):
 		print('Applying trailing stop: ')
 		print(name)
 		# submits trailing stop order
@@ -112,7 +121,7 @@ class Stock:
 			side='sell',
 			type='trailing_stop',
 			time_in_force='gtc',
-			trail_percent=1)
+			trail_percent=percent)
 			
 	def sell(self, api, quantity):
 		#print('=====================================')
