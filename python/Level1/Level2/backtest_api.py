@@ -50,8 +50,9 @@ class api:
 	def list_positions(self):
 		return self.account.portfolio
 		
-	def reset_days(self):
+	def reset(self):
 		self.clock.reset_days()
+		self.account.reset()
 		
 	def next_day(self):
 		self.clock.next_day()
@@ -162,6 +163,11 @@ class Account:
 		# Subtract buying_power
 		self.buying_power -= position.qty * position.entry_price
 		
+	def reset(self):
+		self.equity = 1000
+		self.last_equity = 1000
+		self.buying_power = 1000
+		self.portfolio = []
 	def remove_position(self, position):
 		exists = False
 		value = position.qty * position.entry_price

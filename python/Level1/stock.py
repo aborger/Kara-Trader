@@ -16,10 +16,7 @@ class Stock:
 		return self.frames[Stock._period].get_current_price()
 		
 	def get_prev_bars(self):
-		list = self.frames[Stock._period].get_normalized_data()
-		li2 = sum(list, [])
-		s = ','.join(str(li2))
-		return s
+		return self.frames[Stock._period].get_normalized_data()
 	
 	def get_single_stock():
 		return Stock._stocks[0]

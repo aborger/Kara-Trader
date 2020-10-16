@@ -20,15 +20,8 @@ STOCKDIR = '../Stock_data/'
 def train(name, Stock):
 	#import python.training.head_class as hc
 	#hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
-	class TrainConfig:
-		alpha = 0.5
-		alpha_decay = 0.998
-		epsilon = 1.0
-		epsilon_final = 0.05
-		n_episodes = 1000
-		warmup_episodes = 800
 	
-	from python.training.KaraV2.train_rnn import DQN
+	from python.training.KaraV2.train_rnn import Main
 	print('USER FOR TRAINING: ' + User.get_User()[0].info['email'])
 	stock = Stock.get_single_stock()
 	def act_buy():
@@ -38,17 +31,19 @@ def train(name, Stock):
 		stock.sell(User.get_api(), 1)
 		User.next_day()
 	def act_wait():
-		print('Next Day')
+		#print('Next Day')
 		User.next_day()
 	def observe():
 		return stock.get_prev_bars()
 	def reward():
-		return User.get_api().get_account().equity
+		equity = User.get_api().get_account().equity
+		print('Equity = ' + str(equity))
+		return equity
 	def reset():
 		User.reset()
-	Q = DQN(act_buy, act_sell, act_wait, observe, reward, reset)
+	Q = Main(act_buy, act_sell, act_wait, observe, reward, reset)
 	print('Training...')
-	Q.train(TrainConfig)
+	Q.train()
 	
 	
 def backtest(numdays, model, Stock):

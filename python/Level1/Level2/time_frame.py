@@ -50,19 +50,19 @@ class Time_frame:
 			
 		  
 		# Convert to numpy array
-
-		return dataSet
-		
-	def get_prediction(self):
-		#print('Getting prediction for ' self.symbol ' on ' + time_frame + ' time frame')
-		dataSet = get_normalized_data()
-		
 		npDataSet = np.array(dataSet)
 		reshapedSet = np.reshape(npDataSet, (1, Time_frame._NUMBARS, 5))
 		# Normalize Data
 		sc = MinMaxScaler(feature_range=(0,1))
 		normalized = np.empty(shape=(1, Time_frame._NUMBARS, 5)) 
 		normalized[0] = sc.fit_transform(reshapedSet[0])
+		return normalized
+		
+	def get_prediction(self):
+		#print('Getting prediction for ' self.symbol ' on ' + time_frame + ' time frame')
+
+		normalized = get_normalized_data()
+
 		
 		# Predict Price
 		predicted_price = Time_frame._model.predict(normalized)

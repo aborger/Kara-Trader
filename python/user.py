@@ -255,9 +255,9 @@ class User:
 		print('Setting trailing stop for all users')
 		for user in cls._users:
 			percent = 1
-			if user.info['email'] = 'davidpaper@gmail.com':
+			if user.info['email'] == 'davidpaper@gmail.com':
 				percent = 0.75
-			if user.info['email'] = 'davidgoretoy123@gmail.com':
+			if user.info['email'] == 'davidgoretoy123@gmail.com':
 				percent = 0.5
 			portfolio = user.api.list_positions()
 			for position in portfolio:
@@ -393,12 +393,11 @@ class backtestUser(User):
 			
 	@classmethod
 	def reset(cls):
+		print('------------ Reset ----------')
 		for user in cls._users:
-			user.api.reset_days()
-			account = user.api.get_account()
-			account.equity = 1000
-			account.buying_power = 1000
-
+			user.api.reset()
+			print('Equity = ' + str(user.api.get_account().equity))
+			
 	@classmethod
 	def get_portfolio(cls):
 		for user in cls._users:
