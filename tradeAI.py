@@ -37,7 +37,7 @@ def train(name, Stock):
 		return stock.get_prev_bars()
 	def reward():
 		equity = User.get_api().get_account().equity
-		print('Equity = ' + str(equity))
+		#print('Equity = ' + str(equity))
 		return equity
 	def reset():
 		User.reset()

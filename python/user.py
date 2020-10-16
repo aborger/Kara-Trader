@@ -393,10 +393,10 @@ class backtestUser(User):
 			
 	@classmethod
 	def reset(cls):
-		print('------------ Reset ----------')
+		#print('------------ Reset ----------')
 		for user in cls._users:
 			user.api.reset()
-			print('Equity = ' + str(user.api.get_account().equity))
+			#print('Equity = ' + str(user.api.get_account().equity))
 			
 	@classmethod
 	def get_portfolio(cls):

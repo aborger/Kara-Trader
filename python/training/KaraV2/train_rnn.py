@@ -8,7 +8,7 @@ class config:
 	batch_size = 32
 	discount = 0.99
 	NUMBARS = 10
-	NUMTRADES = 10
+	NUMTRADES = 30
 class DQN(tf.keras.Model):
 	def __init__(self):
 		super(DQN, self).__init__()

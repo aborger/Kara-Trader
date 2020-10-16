@@ -180,8 +180,8 @@ class Account:
 		self.buying_power += value
 		#print('Value of ' + str(value))
 				
-		if not exists:
-			print('PositionNotInPortfolio')
+		#if not exists:
+			#print('PositionNotInPortfolio')
 
 	def remove_empty(self):
 		remove_list = []
