@@ -102,7 +102,7 @@ class Stock:
 		
 
 		
-	def trailing_stop(name, api, quantity):
+	def trailing_stop(name, api, quantity, percent):
 		print('Applying trailing stop: ')
 		print(name)
 		# submits trailing stop order
@@ -112,7 +112,7 @@ class Stock:
 			side='sell',
 			type='trailing_stop',
 			time_in_force='gtc',
-			trail_percent=1)
+			trail_percent=percent)
 			
 	def sell(self, api, quantity):
 		#print('=====================================')

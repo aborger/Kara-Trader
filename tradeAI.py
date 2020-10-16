@@ -60,14 +60,14 @@ def trade(model, Stock):
 
 	if True: #User.get_api().get_clock().is_open:
 		User.cancel_orders()
-		User.users_sell()
+		#User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
 		print('Calculating best stocks...')
-		best_stocks = Stock.collect_stocks(5)
+		#best_stocks = Stock.collect_stocks(5)
 		# Sell any open positions
 		
 		# Buy the best stocks
-		User.users_buy(best_stocks)
+		#User.users_buy(best_stocks)
 	else:
 		print('Stock market is not open today.')
 		
@@ -167,7 +167,7 @@ if __name__ == '__main__':
 			quick_sell()
 			
 		elif args.command == 'trail':
-			trailing()
+			trailing(args.p)
 		
 		elif args.command == 'log':
 			log()
