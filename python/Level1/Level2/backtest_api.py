@@ -5,8 +5,8 @@ import pandas as pd
 STOCKDIR = '../Stock_Data/'
 #448 for 2019, 
 #700 for 2018 (10/12/2020)
-DAYS_TO_COLLECT = 1000
-NUMBARS = 0
+DAYS_TO_COLLECT = 700
+NUMBARS = 10
 
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
@@ -56,7 +56,7 @@ class api:
 		
 	def next_day(self):
 		self.clock.next_day()
-		
+		print(self.account.equity)
 		new_equity = 0
 		for position in self.account.portfolio:
 			price = self._get_current(position.symbol)
@@ -64,6 +64,7 @@ class api:
 			new_equity += price * position.qty
 		self.account.last_equity = self.account.equity
 		self.account.equity = float(new_equity + self.account.buying_power)
+		print(self.account.equity)
 			
 	def submit_order(self, symbol, qty, side, type, time_in_force):
 		# Get price
@@ -74,7 +75,7 @@ class api:
 		if side == 'buy':
 			self.account.add_position(new_position)
 		elif side == 'sell':
-			self.account.remove_position(new_position)
+			return self.account.remove_position(new_position)
 		else:
 			print('Not an option')
 		
@@ -175,13 +176,15 @@ class Account:
 			if positions.symbol == position.symbol:
 				positions.qty -= position.qty
 				exists = True
-		
+				self.buying_power += value
 				
-		self.buying_power += value
+		
 		#print('Value of ' + str(value))
 				
-		#if not exists:
+		if not exists:
+			return False
 			#print('PositionNotInPortfolio')
+		return True
 
 	def remove_empty(self):
 		remove_list = []

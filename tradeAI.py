@@ -20,37 +20,17 @@ STOCKDIR = '../Stock_data/'
 def train(name, Stock):
 	#import python.training.head_class as hc
 	#hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
-	
-	from python.training.KaraV2.train_rnn import Main
-	print('USER FOR TRAINING: ' + User.get_User()[0].info['email'])
-	stock = Stock.get_single_stock()
-	def act_buy():
-		stock.buy(User.get_api(), 1)
-		User.next_day()
-	def act_sell():
-		stock.sell(User.get_api(), 1)
-		User.next_day()
-	def act_wait():
-		#print('Next Day')
-		User.next_day()
-	def observe():
-		return stock.get_prev_bars()
-	def reward():
-		equity = User.get_api().get_account().equity
-		#print('Equity = ' + str(equity))
-		return equity
-	def reset():
-		User.reset()
-	Q = Main(act_buy, act_sell, act_wait, observe, reward, reset)
-	print('Training...')
-	Q.train()
+	from python.training.KaraV2.master import train
+	print(type(User))
+	train(Stock, User)
 	
 	
 def backtest(numdays, model, Stock):
+	from python.training.KaraV2.Level1.v2trade import trade as v2trade
 	for day in range(0, numdays):
 		log()
-		trade(model, Stock)
-		for user in User.get_User():
+		v2trade(model, Stock, User)
+		for user in User.get_user_list():
 			user.api.get_account().remove_empty()
 			
 		User.get_portfolio()
@@ -101,7 +81,8 @@ def trade(model, Stock):
 def import_data(is_test, is_backtest, time_frame):
 	print('Loading AI...')
 	from tensorflow import keras
-	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+	#data/models/different_stocks.h5
+	model = keras.models.load_model('data/v2training/0/model', compile=False)
 	
 	# Load S&P500
 	print('Loading stock list...')

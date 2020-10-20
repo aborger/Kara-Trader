@@ -21,6 +21,9 @@ class Stock:
 	def get_single_stock():
 		return Stock._stocks[0]
 		
+	def get_list():
+		return Stock._stocks
+		
 	def _convert_frame_name(time_frame):
 		if time_frame == '1Min':
 			time_frame = 0

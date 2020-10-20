@@ -52,7 +52,8 @@ class User:
 				if new_user.info['email'] == 'test':
 					cls._users.append(new_user)
 					
-				
+	def get_user_api(self):
+		return self.api
 	@classmethod
 	def get_api(cls):
 		return cls._users[0].api
@@ -69,7 +70,7 @@ class User:
 		return status
 	
 	@classmethod
-	def get_User(cls):
+	def get_user_list(cls):
 		return cls._users
 		
 	def get_buying_power(self):
@@ -368,7 +369,9 @@ class User:
 				user_dict = dict(email=user[1], keyID=user[2], secret_key=user[3])
 				users.append(user_dict)
 			return users
-
+	def user_next_day(self):
+		self.api.next_day()
+		self.api.get_account().remove_empty()
 class backtestUser(User):
 	@classmethod
 	def get_users(cls):
@@ -390,7 +393,8 @@ class backtestUser(User):
 	def next_day(cls):
 		for user in cls._users:
 			user.api.next_day()
-			
+
+
 	@classmethod
 	def reset(cls):
 		#print('------------ Reset ----------')
