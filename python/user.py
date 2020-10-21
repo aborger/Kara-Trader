@@ -261,7 +261,10 @@ class User:
 				percent = 0.5
 			portfolio = user.api.list_positions()
 			for position in portfolio:
-				Stock.trailing_stop(position.symbol, user.api, position.qty, percent)
+				try:
+					Stock.trailing_stop(position.symbol, user.api, position.qty, percent)
+				except:
+					pass
 				
 	@classmethod
 	def cancel_orders(cls):
