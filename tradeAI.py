@@ -81,7 +81,7 @@ def trade(model, Stock):
 def import_data(is_test, is_backtest, time_frame):
 	print('Loading AI...')
 	from tensorflow import keras
-	#data/models/different_stocks.h5
+	#data/models/different_stocks.h5 
 	model = keras.models.load_model('data/v2training/0/model', compile=False)
 	
 	# Load S&P500
@@ -142,7 +142,8 @@ if __name__ == '__main__':
 	#------------------------------------------------------------#
 	# Backtest
 	if args.b:
-	
+		if args.command != 'train':
+			num_days = input("Enter the number of days to backtest: ")
 		
 		import python.Level1.Level2.backtest_api as tradeapi
 		from python.user import backtestUser as User
@@ -153,7 +154,6 @@ if __name__ == '__main__':
 		if args.command == 'train':
 			train(args.name, Stock)
 		else:
-			num_days = input("Enter the number of days to backtest: ") 
 			backtest(int(num_days), model, Stock)
 	else:
 	# Everything else

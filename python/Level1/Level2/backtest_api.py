@@ -154,15 +154,22 @@ class Account:
 	def add_position(self, position):
 		# Add position to portfolio
 		exists = False
-		for positions in self.portfolio:
-			if positions.symbol == position.symbol:
-				positions.qty += position.qty
-				exists = True
-		if not exists:
-			self.portfolio.append(position)
-			
-		# Subtract buying_power
-		self.buying_power -= position.qty * position.entry_price
+		
+		buying_value = position.qty * position.entry_price
+		if buying_value > self.buying_power:
+			print('Not enough buying power')
+		else:
+			for positions in self.portfolio:
+				if positions.symbol == position.symbol:
+					positions.qty += position.qty
+					exists = True
+			if not exists:
+				self.portfolio.append(position)
+				
+		
+			self.buying_power -= buying_value
+		
+		
 		
 	def reset(self):
 		self.equity = 1000
