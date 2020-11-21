@@ -23,7 +23,7 @@ def log():
    return
 
 schedule.every().day.at("13:00").do(buy)
-schedule.every().day.at("14:00").do(
+schedule.every().day.at("14:00").do(charge)
 schedule.every().day.at("14:30").do(trail)
 #schedule.every().hour.do(log)
 

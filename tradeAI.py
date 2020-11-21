@@ -70,7 +70,10 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-	User.users_trailing()
+    if User.get_api().get_clock().is_open:
+        User.users_trailing()
+    else:
+        print('Stock market is not open today.')
 
 def trade(model, Stock):
 		
@@ -79,7 +82,7 @@ def trade(model, Stock):
 	from time import sleep
 
 
-	if True: #User.get_api().get_clock().is_open:
+	if User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
