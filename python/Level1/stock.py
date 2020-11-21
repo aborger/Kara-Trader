@@ -57,10 +57,8 @@ class Stock:
 		for stock in Stock._stocks:
 			try:
 				stock.frames[Stock._period].get_gain()
-			except ValueError:
-				pass
 			except:
-				raise
+				pass
 			else:
 				#print(stock.symbol + "'s gain is " + str(stock.frames[Stock._period].gain))
 				if len(max_stocks) < num_stocks:
@@ -85,20 +83,23 @@ class Stock:
 		return self.frames[Stock._period].gain
 	
 	def buy(self, api, quantity):
-		bought_price = self.frames[0].get_current_price()
+		#bought_price = self.frames[0].get_current_price()
 
 		#self.stop_price = bought_price - (bought_price * Stock._loss_percent)
 		#print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
 		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
 		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
-		
-		api.submit_order(
-			symbol=self.symbol,
-			qty=quantity,
-			side='buy',
-			type='market',
-			time_in_force='gtc')
+		try:
+			api.submit_order(
+				symbol=self.symbol,
+				qty=quantity,
+				side='buy',
+				type='market',
+				time_in_force='gtc')
+		except:
+			print('Failed to buy')
+			pass
 		
 
 		

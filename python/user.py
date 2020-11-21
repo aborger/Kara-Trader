@@ -216,39 +216,47 @@ class User:
 			# find cheapest stock to make sure we buy as much as possible
 			cheapest_price = 999999
 			for stock_dict in best_stocks:
-				price = stock_dict['stock_object'].get_current_price()
-				if price < cheapest_price:
-					cheapest_price = price
+				try:
+					price = stock_dict['stock_object'].get_current_price()
+				except:
+					pass
+				else:
+					if price < cheapest_price:
+						cheapest_price = price
 			account = user.api.get_account()
 			buying_power = int(float(account.buying_power))
 			# Repeat buying until its not worth buying anymore
+			
 			still_buying = True
 			while still_buying:
 				spent = 0
 				still_buying = False # set to false so if no stocks are bought it is done
 				for stock_dict in best_stocks:
-					max_money_for_stock = buying_power * stock_dict['buy_ratio']
-					current = stock_dict['stock_object'].get_current_price()
-					quantity = int(max_money_for_stock / current)
-					debug = False
-					if debug:
-						print('------------------------------------------')
-						print('Stock: ' + stock_dict['stock_object'].symbol)
-						print('gain: ' + str(stock_dict['stock_object'].get_gain()))
-						print('buying_power: ' + str(buying_power))
-						print('buy_ratio: ' + str(stock_dict['buy_ratio']))
-						print('max_money: ' + str(max_money_for_stock))
-						print('Current: ' + str(current))
-						print('Quantity: ' + str(quantity))
-					if quantity > 0:
-						if quantity * current < buying_power:
-							stock_dict['stock_object'].buy(user.api, quantity)
-							spent += quantity * current
-							still_buying = True
-						else:
-							print('Insufficient buying power')
+					try:
+						max_money_for_stock = buying_power * stock_dict['buy_ratio']
+						current = stock_dict['stock_object'].get_current_price()
+						quantity = int(max_money_for_stock / current)
+						debug = False
+						if debug:
+							print('------------------------------------------')
+							print('Stock: ' + stock_dict['stock_object'].symbol)
+							print('gain: ' + str(stock_dict['stock_object'].get_gain()))
+							print('buying_power: ' + str(buying_power))
+							print('buy_ratio: ' + str(stock_dict['buy_ratio']))
+							print('max_money: ' + str(max_money_for_stock))
+							print('Current: ' + str(current))
+							print('Quantity: ' + str(quantity))
+						if quantity > 0:
+							if quantity * current < buying_power:
+								stock_dict['stock_object'].buy(user.api, quantity)
+								spent += quantity * current
+								still_buying = True
+							else:
+								print('Insufficient buying power')
+					except:
+						pass
 				buying_power = buying_power - spent
-				
+			
 				
 	@classmethod
 	def users_trailing(cls):
@@ -277,7 +285,10 @@ class User:
 		for user in cls._users:
 			portfolio = user.api.list_positions()
 			for position in portfolio:
-				Stock.sell_named_stock(position.symbol, user.api, position.qty)
+				try:
+					Stock.sell_named_stock(position.symbol, user.api, position.qty)
+				except:
+					pass
 		
 			
 	

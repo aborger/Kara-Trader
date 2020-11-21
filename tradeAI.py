@@ -37,6 +37,27 @@ def backtest(numdays, model, Stock):
 def test():
 	User.get_stats()
 	
+def charge():
+	import stripe
+	from time import time
+	TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
+	
+	stripe.api_key = TEST_KEY
+	
+	for user in User.get_User():
+		if user.info["email"] == 'test':
+			stripe.SubscriptionItem.create_usage_record(
+				"si_IQaqXjwSodgl02",
+				quantity = int(float(user.api.get_account().equity) * 100),
+				timestamp=int(time())
+			)
+		elif user.info["email"] == 'aborger@nnu.edu':
+			strip.SubscriptionItem.create_usage_record(
+				"si_IQbjimY9WtxZbl",
+				quantity = int(float(user.api.get_account().equity) * 100),
+				timestamp=int(time())
+			)
+	
 def log():
 	User.log(LOGDIR)
 	
@@ -81,6 +102,7 @@ def import_data(is_test, is_backtest, time_frame):
 	
 	# Load S&P500
 	print('Loading stock list...')
+	'''
 	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
 	df = table[0]
 	sp = df['Symbol']
@@ -95,13 +117,21 @@ def import_data(is_test, is_backtest, time_frame):
 
 	if is_backtest:
 		sp = tradeapi.api.get_data(sp, time_frame)
-		
+	'''
+
+	
 	# setup stocks
 	from python.Level1.stock import Stock
 	Stock.setup(NUMBARS, model, User.get_api(), time_frame)
+	'''
 	for symbol in sp:
 		this_stock = Stock(symbol)
-		
+	'''
+	import alpaca_trade_api as theapi
+	assets = User.get_api().list_assets(status='active')
+	for asset in assets:
+		this_stock = Stock(asset.symbol)
+	
 	
 	
 	return Stock, model
@@ -114,7 +144,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read'")
+						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read', 'charge'")
 	
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -155,6 +185,7 @@ if __name__ == '__main__':
 			train(args.name)
 
 		elif args.command == 'test':
+			Stock, model = import_data(args.t, args.b, args.time)
 			test()
 
 		elif args.command == 'trade':
@@ -162,7 +193,9 @@ if __name__ == '__main__':
 			Stock, model = import_data(args.t, args.b, args.time)
 
 			trade(model, Stock)
-			
+		
+		elif args.command == 'charge':
+			charge()
 		elif args.command == 'sell':
 			quick_sell()
 			
