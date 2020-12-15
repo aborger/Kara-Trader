@@ -5,7 +5,7 @@ import pandas as pd
 STOCKDIR = '../Stock_Data/'
 #448 for 2019, 
 #700 for 2018 (10/12/2020)
-DAYS_TO_COLLECT = 700
+BARS_TO_COLLECT = 700
 NUMBARS = 10
 
 class api:
@@ -32,7 +32,7 @@ class api:
 		log = log.to_numpy()
 		new_barset = []
 		# days_past starts at 10 meaning first day it will start at row 10 providing space to predict
-		for row in range(self.clock.days_past - limit, self.clock.days_past):
+		for row in range(self.clock.bars_past - limit, self.clock.bars_past):
 			o = log[row][0]
 			c = log[row][1]
 			h = log[row][2]
@@ -51,11 +51,11 @@ class api:
 		return self.account.portfolio
 		
 	def reset(self):
-		self.clock.reset_days()
+		self.clock.reset_bars()
 		self.account.reset()
 		
-	def next_day(self):
-		self.clock.next_day()
+	def next_bar(self):
+		self.clock.next_bar()
 		#print(self.account.equity)
 		new_equity = 0
 		for position in self.account.portfolio:
@@ -86,7 +86,7 @@ class api:
 			enough_data = False
 			try:
 				size = pd.read_csv(STOCKDIR + stock + '.csv', sep=r'\s*,\s*', engine='python').size
-				if size == 5*(DAYS_TO_COLLECT + NUMBARS):
+				if size == 5*(BARS_TO_COLLECT + NUMBARS):
 					print('Already have data')
 					working_stocks.append(stock)
 					enough_data =  True
@@ -98,10 +98,10 @@ class api:
 				raise
 
 			if not enough_data:
-				barset = api._alpacaAPI.get_barset(stock, timeframe, DAYS_TO_COLLECT + NUMBARS)
+				barset = api._alpacaAPI.get_barset(stock, timeframe, BARS_TO_COLLECT + NUMBARS)
 
 				symbol_bars = barset[stock]
-				if len(symbol_bars) != DAYS_TO_COLLECT + NUMBARS:
+				if len(symbol_bars) != BARS_TO_COLLECT + NUMBARS:
 					print('This stock doesnt have enough data')
 				else:
 					# Always rewrite because number of bars changes
@@ -122,9 +122,9 @@ class Clock:
 	def __init__(self):
 		self.is_open = True
 		#self.real_time = datetime.datetime.today()
-		self.days_past = NUMBARS # usually 10
+		self.bars_past = NUMBARS # usually 10
 		# so days_past will be at 1/2/19
-		self.timestamp = DAYS_TO_COLLECT + self.days_past #448 for 2019, 700 for 2018
+		self.timestamp = BARS_TO_COLLECT + self.bars_past #448 for 2019, 700 for 2018
 		# dont forget to change in get_data too
 	'''	
 	def set_time(self, day, month, year, hour, minute, second):
@@ -135,10 +135,10 @@ class Clock:
 		#self.timestamp = self.timestamp.days
 	'''	
 
-	def reset_days(self):
-		self.days_past = NUMBARS
-	def next_day(self):
-		self.days_past += 1
+	def reset_bars(self):
+		self.bars_past = NUMBARS
+	def next_bar(self):
+		self.bars_past += 1
 		
 		
 		
@@ -157,7 +157,7 @@ class Account:
 		
 		buying_value = position.qty * position.entry_price
 		if buying_value > self.buying_power:
-			print('Not enough buying power')
+			#print('Not enough buying power')
 			return False
 		else:
 			for positions in self.portfolio:
@@ -172,7 +172,9 @@ class Account:
 			return True
 		
 		
-		
+	def get_portfolio(self):
+		return self.portfolio
+
 	def reset(self):
 		self.equity = 1000
 		self.last_equity = 1000
@@ -192,7 +194,7 @@ class Account:
 		#print('Value of ' + str(value))
 				
 		if not exists:
-			print('Not enough positions available to sell!')
+			#print('Not enough positions available to sell!')
 			return False
 		else:
 			return True

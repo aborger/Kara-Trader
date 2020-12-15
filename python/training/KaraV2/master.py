@@ -4,7 +4,8 @@ import shutil
 import numpy as np
 from python.training.KaraV2.Level1.v2trade import backtest
 
-NUMDAYS = 10
+NUMTRADES = 10
+LOGDIR = 'data/v2training/AI.'
 
 def train(Stock, User):
 	print('USER FOR TRAINING: ' + User.get_user_list()[0].info['email'])
@@ -12,6 +13,7 @@ def train(Stock, User):
 	# Create a policy and test
 	print('Creating first champion...')
 	champion = Policy(stocks[0], User, Stock)
+	champion.save()
 	for stock in stocks:
 
 		# Create another policy and test
@@ -23,10 +25,10 @@ def train(Stock, User):
 			champion.delete()
 			champion = contender
 		else:
-			print('The champion won with ' + str(contender.points))
+			print('The reigning champion won with ' + str(contender.points))
 			contender.delete()
 		# Continue training champion
-		print('Teaching the champion more')
+		print('Trainning winner more')
 		champion.learn_more()
 		champion.save()
 			
@@ -38,35 +40,50 @@ class Policy:
 		Policy._policy_id += 1
 		self.trainer = Policy_trainer(stock, User)
 		# Training
-		self.model = self.trainer.train()
+		self.best = self.trainer.train()
 		self.Stock = Stock
 		self.User = User
 		print('Checking effectiveness...')
 		# make save
-		if os.path.exists('data/v2training/' + str(self.id)):
-			shutil.rmtree('data/v2training/' + str(self.id))
-		os.mkdir('data/v2training/' + str(self.id))
+		if os.path.exists(LOGDIR + str(self.id)):
+			shutil.rmtree(LOGDIR + str(self.id))
+		os.mkdir(LOGDIR + str(self.id))
+
+		# Log stats
+		log = open(LOGDIR + str(self.id) + '/stats.txt','w')
+		log.write('Equity = ' + str(self.best["equity"]) + '\n' + 
+		'Reward = ' + str(self.best["reward"]) + '\n' +
+		'Actions = ' + str(self.best["actions"]) + '\n')
+		log.close()
+
 		# Validation
-		self.points = backtest(NUMDAYS, self.model, Stock, User, self.id)
+		for user in User.get_user_list():
+			user.get_user_api().reset()
+		self.points = backtest(NUMTRADES, self.best["model"], Stock, User, self.id)
 		
 		
 	def learn_more(self):
 		# Train model more
-		v2model = self.trainer.continue_training(self.model)
-		if os.path.exists('data/v2training/' + str(self.id + 100)):
-			shutil.rmtree('data/v2training/' + str(self.id + 100))
-		os.mkdir('data/v2training/' + str(self.id + 100))
+		v2Best = self.trainer.continue_training(self.best["model"])
+		self.id += 0.1
+		# if already there, remove
+		if os.path.exists(LOGDIR + str(self.id)):
+			shutil.rmtree(LOGDIR + str(self.id))
+		# make new dir
+		os.mkdir(LOGDIR + str(self.id))
 		# See how it does
-		v2points = backtest(NUMDAYS, v2model, self.Stock, self.User, self.id + 100)
+		for user in self.User.get_user_list():
+			user.get_user_api().reset()
+		v2points = backtest(NUMTRADES, v2Best["model"], self.Stock, self.User, self.id)
 		# If it does better keep it
 		if v2points > self.points:
-			self.model.set_weights(v2model.get_weights())
+			self.best["model"].set_weights(v2best["model"].get_weights())
 			self.points = v2points
 		
 	def save(self):
-		self.model.save("data/v2training/" + str(self.id) + "/model")
+		self.best["model"].save("data/v2training/AI." + str(self.id) + "/model")
 	def delete(self):
-		shutil.rmtree("data/v2training/" + str(self.id))
+		shutil.rmtree("data/v2training/AI." + str(self.id))
 		
 class Policy_trainer:
 	def __init__(self, stock, User):
@@ -79,17 +96,17 @@ class Policy_trainer:
 	# --------------------- Actions --------------------
 	def act_buy(self):
 		success = self.stock.buy(self.User.get_api(), 1)
-		self.User.next_day()
+		self.User.next_bar()
 		return success
 
 	def act_sell(self):
 		success = self.stock.sell(self.User.get_api(), 1)
-		self.User.next_day()
+		self.User.next_bar()
 		return success
 
 	def act_wait(self):
 		#print('Next Day')
-		self.User.next_day()
+		self.User.next_bar()
 		return True
 
 	# ----------------------------------------------------

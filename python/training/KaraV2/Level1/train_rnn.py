@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 
 class config:
-	num_episodes = 500
+	num_episodes = 50
 	epsilon = 1.0
 	epsilon_discount = 0.95
 	batch_size = 32
@@ -23,7 +23,6 @@ class DQN(tf.keras.Model):
 		self.LSTM4 = tf.keras.layers.LSTM(units=50,)
 		self.dropout = tf.keras.layers.Dropout(0.2)
 		self.dense_stock = tf.keras.layers.Dense(50)
-		#self.input_account = tf.keras.layers.InputLayer(input_shape=(2))
 		self.dense_account = tf.keras.layers.Dense(4, input_shape=(1, 2))
 		self.concate = tf.keras.layers.Concatenate()
 		self.dense_final = tf.keras.layers.Dense(config.NUM_ACTIONS)
@@ -35,6 +34,7 @@ class DQN(tf.keras.Model):
 	def call(self, input):
 		# Pass forward
 		y = self.dense_account(input[1]) # input[1] contains (buying_power, position_size)
+
 		x = self.LSTM1(input[0]) # input[0] contains (NUMBARS, BARDATA)
 		x = self.dropout(x)
 		x = self.LSTM2(x)
@@ -44,9 +44,6 @@ class DQN(tf.keras.Model):
 		x = self.LSTM4(x)
 		x = self.dropout(x)
 		x = self.dense_stock(x)
-
-		#y = self.input_account(input[1])
-		
 
 		z = self.concate([x, y])
 		return self.dense_final(z)
@@ -96,24 +93,35 @@ class Main:
 		return model
 		
 	def train(self):
+		last_100_ep_equities = []
 		last_100_ep_rewards = []
+		last_100_ep_buying_errors = []
+		last_100_ep_selling_errors = []
 		best = {
 			"equity": 0,
+			"reward": 0,
 			"model": 0,
 			"actions": 0
 		}
 		for episode in range(config.num_episodes+1):
 			state = self.env.reset()
-			ep_reward, done = 0, False
+			ep_equity, ep_reward, done, buying_errors, selling_errors = 0, 0, False, 0, 0
 			action_list = []
 			while not done:
 				#state_in = tf.expand_dims(state, axis=0)
 				action = self.select_epsilon_greedy_action(state, config.epsilon)
 				action_list.append(self.env.action_space[action].name)
 				next_state, reward, done, info = self.env.step(action)
-				ep_reward = reward
+				ep_equity = reward
+				buying_errors = info[0]
+				selling_errors = info[1]
+				try:
+					ep_reward = ep_equity / (buying_errors + selling_errors)
+				except ZeroDivisionError:
+					ep_reward = ep_equity * 1.5
+				
 				# Save to experience replay
-				self.buffer.add(state, action, reward, next_state, done)
+				self.buffer.add(state, action, ep_reward, next_state, done)
 				state = next_state
 				self.cur_frame += 1
 				# copy main_nn weights to target_nn
@@ -129,23 +137,37 @@ class Main:
 				config.epsilon -= config.epsilon_discount / config.num_episodes
 				
 			if len(last_100_ep_rewards) == 100:
+				last_100_ep_equities = last_100_ep_equities[1:]
 				last_100_ep_rewards = last_100_ep_rewards[1:]
+				last_100_ep_buying_errors = last_100_ep_buying_errors[1:]
+				last_100_ep_selling_errors = last_100_ep_selling_errors[1:]
+
+			last_100_ep_equities.append(ep_equity)
 			last_100_ep_rewards.append(ep_reward)
+			last_100_ep_buying_errors.append(buying_errors)
+			last_100_ep_selling_errors.append(selling_errors)
 			
-			if ep_reward > best["equity"]:
-				best["equity"] = ep_reward
+			if ep_reward > best["reward"]:
+				best["equity"] = ep_equity
+				best["reward"] = ep_reward
 				best["model"] = self.target_nn
 				best["actions"] = action_list
+
 			
 			if episode % 10 == 0:
-				print(f'Episode {episode}/{config.num_episodes}. Epsilon: {config.epsilon:.3f}. '
-				f'Average reward in last 10 episodes: {np.mean(last_100_ep_rewards):.3f}')
+				print(f'Episode {episode}/{config.num_episodes}. Epsilon: {config.epsilon:.3f}. \n'
+				f'Last 10 episodes: \n'
+				f'Average Equity: {np.mean(last_100_ep_equities):.2f}\n'
+				f'Average Reward: {np.mean(last_100_ep_rewards):.3f}\n'
+				f'Average Buying Error: {np.mean(last_100_ep_buying_errors):.1f}\n'
+				f'Average Selling Error: {np.mean(last_100_ep_selling_errors):.1f}\n')
 		
 		print('Best Equity: ' + str(best["equity"]))
+		print('Best Reward: ' + str(best["reward"]))
 		print('Actions:')
 		print(best["actions"])
 		print('Saving model as Kara_V2_Model')
-		return best["model"]
+		return best
 
 class Environment:
 	def __init__(self, act_buy, act_sell, act_wait, observe, reward, reset):
@@ -154,7 +176,8 @@ class Environment:
 		self.reward_func = reward
 		self.reset_funct = reset
 		self.count = 0
-	
+		self.buying_errors = 0
+		self.selling_errors = 0
 
 	def reset(self):
 		self.count = 0
@@ -166,14 +189,18 @@ class Environment:
 		success = self.action_space[action].perform()
 		new_observation = self.observe_func()
 		reward = self.reward_func()
+
 		if not success:
-			reward /= 2
+			if (self.action_space[action].name == 'Buy'):
+				self.buying_errors += 1
+			elif (self.action_space[action].name == 'Sell'):
+				self.selling_errors += 1
 		#print('Reward: ' + str(reward))
 		done = False
 		self.count += 1
 		if self.count > config.NUMTRADES:
 			done = True
-		info = 0
+		info = (self.buying_errors, self.selling_errors)
 		return new_observation, reward, done, info
 		
 

@@ -129,17 +129,15 @@ class User:
 		t = time.localtime()
 		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
 		return current_time
-	
-	# Overall stats
-	@classmethod
-	def log(cls, LOGDIR):
 
-		print('logging...')
+	@classmethod
+	def log_single(cls, LOGDIR):
+		#print('logging...')
 		for user in cls._users:
 			if not os.path.exists(LOGDIR + user.info['email'] + '.csv'):
 				# Start log
 				log = open(LOGDIR + user.info['email'] + '.csv','w')
-				log.write('Time, Equity\n')
+				log.write('Time, Equity, , Portfolio,\n')
 				log.close()
 			
 			# Add to log
@@ -150,19 +148,35 @@ class User:
 			log.write(current_time + ', ')
 			
 			# Equity
-			log.write(str(user.get_equity()) + '\n')
-			
+			log.write(str(user.get_equity()) + ', , Stocks:')
+
+			# Portfolio
+			portfolio = user.api.get_account().get_portfolio()
+			for position in portfolio:
+				log.write(',' + position.symbol)
+			log.write('\n , , , Quantity:')
+			for position in portfolio:
+				log.write(',' + str(position.qty))
+			log.write('\n , , , Stock Price:')
+			for position in portfolio:
+				log.write(',' + str(position.current_price))
+			log.write('\n')
+
 			log.close()
+
+	# Overall stats
+	@classmethod
+	def log(cls, LOGDIR):
+		cls.log_single(LOGDIR)
 		
 		# Get average gain
-
 		gain_sum = 0.0
 		for user in cls._users:
-			print(user.info['email'])
-			log = pd.read_csv(LOGDIR + user.info['email'] + '.csv', sep=r'\s*,\s*', engine='python')
+			#print(user.info['email'])
+			log = pd.read_csv(LOGDIR + user.info['email'] + '.csv', engine='python') #, sep=r'\s*,\s*', engine='python')
 			log = log.to_numpy()
-			end = len(log) - 1
-			previous = end - 1
+			end = len(log) - 3
+			previous = end - 3
 			try:
 				gain = float(log[end][1]) / float(log[previous][1])
 				gain = (gain -1)
@@ -371,9 +385,9 @@ class User:
 			return users
 
 	def user_next_day(self):
-		self.api.next_day()
+		self.api.next_bar()
 		self.api.get_account().remove_empty()
-		
+
 class backtestUser(User):
 
 	@classmethod
@@ -393,9 +407,9 @@ class backtestUser(User):
 			user.api.get_clock().set_time(day=day, month=month, year=year, hour=hour, minute=minute, second=second)
 	'''
 	@classmethod
-	def next_day(cls):
+	def next_bar(cls):
 		for user in cls._users:
-			user.api.next_day()
+			user.api.next_bar()
 
 
 	@classmethod
@@ -423,7 +437,7 @@ class backtestUser(User):
 
 	@classmethod
 	def get_time(cls):
-		return str(cls._users[0].api.get_clock().days_past - 10)
+		return str(cls._users[0].api.get_clock().bars_past - 10)
 		
 	@classmethod
 	def get_stats(cls):

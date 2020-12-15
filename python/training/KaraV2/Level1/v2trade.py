@@ -3,16 +3,12 @@ import numpy as np
 
 def backtest(numdays, model, Stock, User, id):
 	for day in range(0, numdays):
-		User.log("data/v2training/" + str(id) + "/")
+		User.log_single("data/v2training/ai." + str(id) + "/")
 		trade(model, Stock, User)
 		for user in User.get_user_list():
-			user.api.get_account().remove_empty()
-			
-		User.get_portfolio()
-		User.next_day()
-		print('                       Next Day')
-		print('=======================================================')
-		User.get_portfolio()
+			user.api.get_account().remove_empty()			
+		User.next_bar()
+
 	equity_sum = 0
 	for user in User.get_user_list():
 		equity_sum += user.get_equity()
@@ -24,8 +20,6 @@ def trade(model, Stock, User):
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
 	from time import sleep
-
-
 
 	if User.get_api().get_clock().is_open:
 		for user in User.get_user_list():

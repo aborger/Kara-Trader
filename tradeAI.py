@@ -32,11 +32,12 @@ def backtest(numdays, model, Stock):
 		for user in User.get_user_list():
 			user.api.get_account().remove_empty()
 			
-		User.get_portfolio()
-		User.next_day()
-		print('                       Next Day')
+		#User.get_portfolio()
+		User.next_bar()
+		print('')
+		print('                       Next Bar')
 		print('=======================================================')
-		User.get_portfolio()
+		#User.get_portfolio()
 
 def test():
 	User.get_stats()
