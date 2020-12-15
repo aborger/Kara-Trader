@@ -369,10 +369,13 @@ class User:
 				user_dict = dict(email=user[1], keyID=user[2], secret_key=user[3])
 				users.append(user_dict)
 			return users
+
 	def user_next_day(self):
 		self.api.next_day()
 		self.api.get_account().remove_empty()
+		
 class backtestUser(User):
+
 	@classmethod
 	def get_users(cls):
 		users = []

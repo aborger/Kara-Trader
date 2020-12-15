@@ -1,6 +1,7 @@
 from python.training.KaraV2.Level1.train_rnn import Main
 import os
 import shutil
+import numpy as np
 from python.training.KaraV2.Level1.v2trade import backtest
 
 NUMDAYS = 10
@@ -71,20 +72,40 @@ class Policy_trainer:
 	def __init__(self, stock, User):
 		self.stock = stock
 		self.User = User
+		# Give Q functions
+		# act = possible move
 		self.Q = Main(self.act_buy, self.act_sell, self.act_wait, self.observe, self.reward, self.reset)
 		
+	# --------------------- Actions --------------------
 	def act_buy(self):
-		self.stock.buy(self.User.get_api(), 1)
+		success = self.stock.buy(self.User.get_api(), 1)
 		self.User.next_day()
+		return success
+
 	def act_sell(self):
 		success = self.stock.sell(self.User.get_api(), 1)
 		self.User.next_day()
 		return success
+
 	def act_wait(self):
 		#print('Next Day')
-		self.User.next_day()	
+		self.User.next_day()
+		return True
+
+	# ----------------------------------------------------
 	def observe(self):
-		return self.stock.get_prev_bars()
+		positions = self.User.get_api().list_positions()
+		position_qty = 0
+		for pos in positions:
+			if pos.symbol == self.stock.symbol:
+				position_qty = pos.qty
+
+		dataSet = [self.User.get_api().get_account().buying_power, position_qty]
+		npDataSet = np.array(dataSet)
+		reshapedSet = np.reshape(npDataSet, (1, 2))
+
+		return (self.stock.get_prev_bars(), reshapedSet)
+
 	def reward(self):
 		equity = self.User.get_api().get_account().equity
 		#print('Equity = ' + str(equity))

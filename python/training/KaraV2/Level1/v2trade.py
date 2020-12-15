@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 def backtest(numdays, model, Stock, User, id):
 	for day in range(0, numdays):
@@ -24,10 +25,23 @@ def trade(model, Stock, User):
 	#from python.PYkeys import Keys
 	from time import sleep
 
+
+
 	if User.get_api().get_clock().is_open:
 		for user in User.get_user_list():
 			for stock in Stock.get_list():
-				state = stock.get_prev_bars()
+				# get account data
+				positions = user.get_user_api().list_positions()
+				position_qty = 0
+				for pos in positions:
+					if pos.symbol == stock.symbol:
+						position_qty = pos.qty
+
+				dataSet = [user.get_user_api().get_account().buying_power, position_qty]
+				npDataSet = np.array(dataSet)
+				reshapedSet = np.reshape(npDataSet, (1, 2))
+
+				state = (stock.get_prev_bars(), reshapedSet)
 				action_num = tf.argmax(model(state)[0]).numpy()
 				action = Actions(stock, user)
 				action.perform(action_num)

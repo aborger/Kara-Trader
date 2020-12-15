@@ -102,7 +102,7 @@ class Stock:
 
 		#print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
 		
-		api.submit_order(
+		return api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='buy',
@@ -127,12 +127,13 @@ class Stock:
 		#print('=====================================')
 		#print ('Sold ' + self.symbol)
 		
-		api.submit_order(
+		return api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
+		
 		
 			
 	def sell_named_stock(name, api, quantity):

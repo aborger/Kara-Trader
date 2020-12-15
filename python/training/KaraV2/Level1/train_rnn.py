@@ -3,13 +3,17 @@ import numpy as np
 import tensorflow as tf
 
 class config:
-	num_episodes = 100
+	num_episodes = 500
 	epsilon = 1.0
 	epsilon_discount = 0.95
 	batch_size = 32
 	discount = 0.99
 	NUMBARS = 10
 	NUMTRADES = 10
+
+	NUM_ACTIONS = 3
+
+# -------------------------------- Models ----------------------------------------------
 class DQN(tf.keras.Model):
 	def __init__(self):
 		super(DQN, self).__init__()
@@ -18,33 +22,20 @@ class DQN(tf.keras.Model):
 		self.LSTM3 = tf.keras.layers.LSTM(units=50,return_sequences=True)
 		self.LSTM4 = tf.keras.layers.LSTM(units=50,)
 		self.dropout = tf.keras.layers.Dropout(0.2)
-		self.dense = tf.keras.layers.Dense(3)
+		self.dense_stock = tf.keras.layers.Dense(50)
+		#self.input_account = tf.keras.layers.InputLayer(input_shape=(2))
+		self.dense_account = tf.keras.layers.Dense(4, input_shape=(1, 2))
+		self.concate = tf.keras.layers.Concatenate()
+		self.dense_final = tf.keras.layers.Dense(config.NUM_ACTIONS)
 		
-	def create_model(self):
-		model = Sequential()
-		state_shape = self.env.observation_space.shape
+		# loss=mean_squared_error
+		# optimizer=Adam(lr=learning_rate)
+
 		
-		model.add(LSTM(units=50,return_sequences=True, input_shape=(NUMBARS, 5)))
-		model.add(Dropout(0.2))
-
-		model.add(LSTM(units=50,return_sequences=True))
-		model.add(Dropout(0.2))
-
-		model.add(LSTM(units=50,return_sequences=True))
-		model.add(Dropout(0.2))
-
-		model.add(LSTM(units=50,))
-		model.add(Dropout(0.2))
-
-		model.add(Dense(self.env.action_space.n))
-
-		model.compile(loss='mean_squared_error', optimizer=Adam(lr=self.learning_rate))
-
-		return model
-		
-	def call(self, x):
+	def call(self, input):
 		# Pass forward
-		x = self.LSTM1(x)
+		y = self.dense_account(input[1]) # input[1] contains (buying_power, position_size)
+		x = self.LSTM1(input[0]) # input[0] contains (NUMBARS, BARDATA)
 		x = self.dropout(x)
 		x = self.LSTM2(x)
 		x = self.dropout(x)
@@ -52,7 +43,13 @@ class DQN(tf.keras.Model):
 		x = self.dropout(x)
 		x = self.LSTM4(x)
 		x = self.dropout(x)
-		return self.dense(x)
+		x = self.dense_stock(x)
+
+		#y = self.input_account(input[1])
+		
+
+		z = self.concate([x, y])
+		return self.dense_final(z)
 
 
 class Main:
@@ -142,13 +139,14 @@ class Main:
 			
 			if episode % 10 == 0:
 				print(f'Episode {episode}/{config.num_episodes}. Epsilon: {config.epsilon:.3f}. '
-				f'Reward in last 10 episodes: {np.mean(last_100_ep_rewards):.3f}')
+				f'Average reward in last 10 episodes: {np.mean(last_100_ep_rewards):.3f}')
 		
 		print('Best Equity: ' + str(best["equity"]))
 		print('Actions:')
 		print(best["actions"])
 		print('Saving model as Kara_V2_Model')
 		return best["model"]
+
 class Environment:
 	def __init__(self, act_buy, act_sell, act_wait, observe, reward, reset):
 		self.action_space = [Action('Buy', act_buy), Action('Sell', act_sell), Action('Wait', act_wait)]
@@ -165,10 +163,10 @@ class Environment:
 		return initial_observation
 
 	def step(self, action):
-		sell_success = self.action_space[action].perform()
+		success = self.action_space[action].perform()
 		new_observation = self.observe_func()
 		reward = self.reward_func()
-		if not sell_success:
+		if not success:
 			reward /= 2
 		#print('Reward: ' + str(reward))
 		done = False

@@ -21,7 +21,6 @@ def train(name, Stock):
 	#import python.training.head_class as hc
 	#hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
 	from python.training.KaraV2.master import train
-	print(type(User))
 	train(Stock, User)
 	
 	
@@ -81,9 +80,13 @@ def trade(model, Stock):
 def import_data(is_test, is_backtest, time_frame):
 	print('Loading AI...')
 	from tensorflow import keras
-	#data/models/different_stocks.h5 
-	model = keras.models.load_model('data/v2training/0/model', compile=False)
-	
+	#data/models/different_stocks.h5
+	try: 
+		model = keras.models.load_model('data/v2training/0/model', compile=False)
+	except OSError:
+		print('No saved model')
+	model = 0
+
 	# Load S&P500
 	print('Loading stock list...')
 	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
