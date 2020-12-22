@@ -27,8 +27,6 @@ class DQN(tf.keras.Model):
 		self.concate = tf.keras.layers.Concatenate()
 		self.dense_final = tf.keras.layers.Dense(config.NUM_ACTIONS)
 		
-		# loss=mean_squared_error
-		# optimizer=Adam(lr=learning_rate)
 
 		
 	def call(self, input):
