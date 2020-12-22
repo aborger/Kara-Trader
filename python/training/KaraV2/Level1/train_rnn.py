@@ -66,6 +66,7 @@ class Main:
 		next_qs = self.target_nn(next_state)
 		max_next_qs = tf.reduce_max(next_qs, axis=-1)
 		target = reward + (1. - done) * config.discount * max_next_qs
+
 		with tf.GradientTape() as tape:
 			qs = self.main_nn(state)
 			action_mask = tf.one_hot(action, len(self.env.action_space))
