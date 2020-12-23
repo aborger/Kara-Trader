@@ -10,30 +10,27 @@ class config:
 	discount = 0.99
 	NUMBARS = 10
 	NUMTRADES = 10
+	NUMSTOCKS = 500
 
 	NUM_ACTIONS = 3
 
 # -------------------------------- Models ----------------------------------------------
-class DQN(tf.keras.Model):
+# Each stock goes through this EDQN model to be evaluated
+# NUMBARS worth of bar data gets converted into a single evaluation value
+class EDQN(tf.keras.Model):
 	def __init__(self):
-		super(DQN, self).__init__()
+		super(EDQN, self).__init__()
 		self.LSTM1 = tf.keras.layers.LSTM(units=50,return_sequences=True, input_shape=(config.NUMBARS, 5))
 		self.LSTM2 = tf.keras.layers.LSTM(units=50,return_sequences=True)
 		self.LSTM3 = tf.keras.layers.LSTM(units=50,return_sequences=True)
 		self.LSTM4 = tf.keras.layers.LSTM(units=50,)
 		self.dropout = tf.keras.layers.Dropout(0.2)
-		self.dense_stock = tf.keras.layers.Dense(50)
-		self.dense_account = tf.keras.layers.Dense(4, input_shape=(1, 2))
-		self.concate = tf.keras.layers.Concatenate()
-		self.dense_final = tf.keras.layers.Dense(config.NUM_ACTIONS)
-		
+		self.dense1 = tf.keras.layers.Dense(50)
+		self.dense2 = tf.keras.layers.Dense(1)
 
-		
-	def call(self, input):
+	def call(self, x):
 		# Pass forward
-		y = self.dense_account(input[1]) # input[1] contains (buying_power, position_size)
-
-		x = self.LSTM1(input[0]) # input[0] contains (NUMBARS, BARDATA)
+		x = self.LSTM1(x)
 		x = self.dropout(x)
 		x = self.LSTM2(x)
 		x = self.dropout(x)
@@ -41,10 +38,30 @@ class DQN(tf.keras.Model):
 		x = self.dropout(x)
 		x = self.LSTM4(x)
 		x = self.dropout(x)
-		x = self.dense_stock(x)
+		x = self.dense1(x)
+		x = self.dense2(x)
+		return x
 
+# Each user has a CDQN, inputs are buying power, and (position size, evaluation) for each stock
+# outputs a (buy/sell/wait) for each stock
+class CDQN(tf.keras.Model):
+	def __init__(self):
+		super(CDQN, self).__init__()
+		self.dense_stocks = tf.keras.layers.Dense((NUMSTOCKS, 3), input_shape=(NUMSTOCKS, 2))
+		self.power_input = tf.keras.Input(shape=(1,))
+		self.concate = tf.keras.layers.Concatenate()
+		self.dense1 = tf.keras.layers.Dense((NUMSTOCKS, 3)
+		self.dense2 = tf.keras.layers.Dense((NUMSTOCKS, 3))
+
+	def call(self, input):
+		y = self.power_input(input[0])
+
+		x = self.dense_stocks(input[1])
 		z = self.concate([x, y])
-		return self.dense_final(z)
+		z = self.dense1(z)
+		z = self.dense2(z)
+		return z
+
 
 
 class Main:
@@ -53,8 +70,10 @@ class Main:
 		config.epsilon = 1
 		self.buffer = ReplayBuffer(100000)
 		self.cur_frame = 0
-		self.main_nn = DQN()
-		self.target_nn = DQN()
+		self.main_EDQN = eDQN()
+		self.target_EDQN = EDQN()
+		self.main_CDQN = CDQN()
+		self.target_CDQN = CDQN()
 		
 		self.optimizer = tf.keras.optimizers.Adam(1e-4)
 		self.mse = tf.keras.losses.MeanSquaredError()
