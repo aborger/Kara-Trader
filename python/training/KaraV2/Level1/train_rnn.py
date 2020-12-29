@@ -19,6 +19,21 @@ class config:
 	optimizer = tf.keras.optimizers.Adam(1e-4)
 	mse = tf.keras.losses.MeanSquaredError()
 
+
+def checkError(val):
+	if isinstance(val, tf.python.framework.ops.EagerTensor):
+		val = val.numpy()
+
+	if isinstance(val, np.ndarray):
+		if val.any() < -1 or val.any() > 1:
+			print(val)
+			raise ValueError(val)
+	else:
+		if val < -1 or val > 1:
+			print(val)
+			print(type(val))
+			raise ValueError(val)
+
 # -------------------------------- Models ----------------------------------------------
 # Each stock goes through this EDQN model to be evaluated
 # NUMBARS worth of bar data gets converted into a single evaluation value
@@ -39,18 +54,30 @@ class EDQN(tf.keras.Model):
 		self.reward_mean = 0
 		self.reward_variance = 1
 
-	def call(self, x):
+
+	def call(self, input):
 		# Pass forward
-		x = self.LSTM1(x)
+		checkError(input)
+		x = self.LSTM1(input)
+		checkError(x)
 		x = self.dropout(x)
+		checkError(x)
 		x = self.LSTM2(x)
+		checkError(x)
 		x = self.dropout(x)
+		checkError(x)
 		x = self.LSTM3(x)
+		checkError(x)
 		x = self.dropout(x)
+		checkError(x)
 		x = self.LSTM4(x)
+		checkError(x)
 		x = self.dropout(x)
+		checkError(x)
 		x = self.dense1(x)
+		checkError(x)
 		x = self.dense2(x)
+		checkError(x)
 		return x
 
 	def train(self, state, reward):
@@ -92,12 +119,23 @@ class CDQN(tf.keras.Model):
 			y.append(input[0])
 		y = np.array(y)
 		y = np.reshape(y, (1, 10))
+
+		checkError(y)
+
 		y = tf.convert_to_tensor(y, dtype=tf.float64)
 		x = self.dense_stocks(input[1])
+		# check values
+		
+		checkError(x)
+
+		# continue
 		z = self.concate([x, y])
+		checkError(z)
 		z = self.dense1(z)
-		output = self.dense2(z)
-		return output
+		checkError(z)
+		z = self.dense2(z)
+		checkError(z)
+		return z
 
 
 	
@@ -105,21 +143,13 @@ class CDQN(tf.keras.Model):
 		'''Perform training on batch of data from replay buffer'''
 		# Calculate targets
 		next_qs = target_nn(next_state)
-		print('next_qs:')
-		print(next_qs)
 		max_next_qs = tf.reduce_max(next_qs, axis=-1)
-		print('max_next_qs:')
-		print(max_next_qs)
 		target = reward + (1. - done) * config.discount * max_next_qs
-		print('target:')
-		print(target)
 		with tf.GradientTape() as tape:
 			qs = self.call(state)
-			print('qs:')
-			print(qs)
-			action_mask = tf.one_hot(action, len(env.action_space))
-			print('action_mask:')
-			print(action_mask)
+			# Create one hot
+			action_mask = tf.zeros([3, config.NUMSTOCKS]).numpy()
+			action_mask[action] = 1
 			masked_qs = tf.reduce_sum(action_mask * qs, axis=-1)
 			loss = config.mse(target, masked_qs)
 		grads = tape.gradient(loss, self.trainable_variables)
