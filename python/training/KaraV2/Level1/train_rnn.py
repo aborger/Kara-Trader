@@ -105,14 +105,21 @@ class CDQN(tf.keras.Model):
 		'''Perform training on batch of data from replay buffer'''
 		# Calculate targets
 		next_qs = target_nn(next_state)
+		print('next_qs:')
+		print(next_qs)
 		max_next_qs = tf.reduce_max(next_qs, axis=-1)
+		print('max_next_qs:')
+		print(max_next_qs)
 		target = reward + (1. - done) * config.discount * max_next_qs
-
+		print('target:')
+		print(target)
 		with tf.GradientTape() as tape:
 			qs = self.call(state)
 			print('qs:')
 			print(qs)
 			action_mask = tf.one_hot(action, len(env.action_space))
+			print('action_mask:')
+			print(action_mask)
 			masked_qs = tf.reduce_sum(action_mask * qs, axis=-1)
 			loss = config.mse(target, masked_qs)
 		grads = tape.gradient(loss, self.trainable_variables)
