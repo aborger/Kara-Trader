@@ -63,15 +63,31 @@ class Main:
 	def train_step(self, state, action, reward, next_state, done):
 		'''Perform training on batch of data from replay buffer'''
 		# Calculate targets
+		print()
+		print()
 		next_qs = self.target_nn(next_state)
+		print('next_qs:')
+		print(next_qs)
 		max_next_qs = tf.reduce_max(next_qs, axis=-1)
+		print('max_next_qs')
+		print(max_next_qs)
 		target = reward + (1. - done) * config.discount * max_next_qs
+		print('target:')
+		print(target)
 
 		with tf.GradientTape() as tape:
 			qs = self.main_nn(state)
+			print('qs:')
+			print(qs)
 			action_mask = tf.one_hot(action, len(self.env.action_space))
+			print('action_mask:')
+			print(action_mask)
 			masked_qs = tf.reduce_sum(action_mask * qs, axis=-1)
+			print('masked_qs:')
+			print(masked_qs)
 			loss = self.mse(target, masked_qs)
+			print('loss:')
+			print(loss)
 		grads = tape.gradient(loss, self.main_nn.trainable_variables)
 		self.optimizer.apply_gradients(zip(grads, self.main_nn.trainable_variables))
 		return loss
