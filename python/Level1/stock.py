@@ -23,6 +23,9 @@ class Stock:
 		
 	def get_list():
 		return Stock._stocks
+
+	def get_list_size():
+		return len(Stock._stocks)
 		
 	def _convert_frame_name(time_frame):
 		if time_frame == '1Min':

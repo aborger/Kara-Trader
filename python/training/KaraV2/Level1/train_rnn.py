@@ -1,22 +1,29 @@
 from collections import deque
 import numpy as np
 import tensorflow as tf
+import math
 
 class config:
 	num_episodes = 50
-	epsilon = 1.0
+	epsilon = 1
+	epsilon_reset = 1
 	epsilon_discount = 0.95
 	batch_size = 32
 	discount = 0.99
 	NUMBARS = 10
 	NUMTRADES = 10
-	NUMSTOCKS = 500
+	NUMSTOCKS = 10
 
 	NUM_ACTIONS = 3
+
+	optimizer = tf.keras.optimizers.Adam(1e-4)
+	mse = tf.keras.losses.MeanSquaredError()
 
 # -------------------------------- Models ----------------------------------------------
 # Each stock goes through this EDQN model to be evaluated
 # NUMBARS worth of bar data gets converted into a single evaluation value
+# EDQN (Evaluation Deep Q-Network)
+tf.keras.backend.set_floatx('float64')
 class EDQN(tf.keras.Model):
 	def __init__(self):
 		super(EDQN, self).__init__()
@@ -27,6 +34,10 @@ class EDQN(tf.keras.Model):
 		self.dropout = tf.keras.layers.Dropout(0.2)
 		self.dense1 = tf.keras.layers.Dense(50)
 		self.dense2 = tf.keras.layers.Dense(1)
+
+		self.reward_size = 0
+		self.reward_mean = 0
+		self.reward_variance = 1
 
 	def call(self, x):
 		# Pass forward
@@ -42,66 +53,130 @@ class EDQN(tf.keras.Model):
 		x = self.dense2(x)
 		return x
 
+	def train(self, state, reward):
+		self.reward_size += 1
+		new_mean = self.reward_mean + (reward - self.reward_mean)/self.reward_size
+		new_variance = (self.reward_variance + (reward - self.reward_mean) * (reward - new_mean)) / self.reward_size
+		self.reward_mean = new_mean
+		self.reward_variance = new_variance
+		target_score = (reward - self.reward_mean) / math.sqrt(self.reward_variance)
+
+		'''Perform training on batch of data from replay buffer'''
+		# Calculate targets
+
+		with tf.GradientTape() as tape:
+			q = self.call(state)
+			loss = config.mse(target_score, q)
+		grads = tape.gradient(loss, self.trainable_variables)
+		config.optimizer.apply_gradients(zip(grads, self.trainable_variables))
+		return loss
+
 # Each user has a CDQN, inputs are buying power, and (position size, evaluation) for each stock
 # outputs a (buy/sell/wait) for each stock
+# CDQN (Chooser Deep Q-Network), I couldnt think of anything better than chooser, but this one picks which stock
 class CDQN(tf.keras.Model):
 	def __init__(self):
 		super(CDQN, self).__init__()
-		self.dense_stocks = tf.keras.layers.Dense((NUMSTOCKS, 3), input_shape=(NUMSTOCKS, 2))
-		self.power_input = tf.keras.Input(shape=(1,))
-		self.concate = tf.keras.layers.Concatenate()
-		self.dense1 = tf.keras.layers.Dense((NUMSTOCKS, 3)
-		self.dense2 = tf.keras.layers.Dense((NUMSTOCKS, 3))
+		self.dense_stocks = tf.keras.layers.Dense(config.NUMSTOCKS, input_shape=(2, config.NUMSTOCKS))
+		self.concate = tf.keras.layers.Concatenate(axis=0)
+		self.dense1 = tf.keras.layers.Dense(config.NUMSTOCKS)
+		self.dense2 = tf.keras.layers.Dense(config.NUMSTOCKS)
+
+
+
 
 	def call(self, input):
-		y = self.power_input(input[0])
-
+		# feed
+		y = []
+		for i in range(0, config.NUMSTOCKS):
+			y.append(input[0])
+		y = np.array(y)
+		y = np.reshape(y, (1, 10))
+		y = tf.convert_to_tensor(y, dtype=tf.float64)
 		x = self.dense_stocks(input[1])
 		z = self.concate([x, y])
 		z = self.dense1(z)
-		z = self.dense2(z)
-		return z
+		output = self.dense2(z)
+		return output
 
 
-
-class Main:
-	def __init__(self, act_buy, act_sell, act_wait, observe, reward, reset):
-		self.env = Environment(act_buy, act_sell, act_wait, observe, reward, reset)
-		config.epsilon = 1
-		self.buffer = ReplayBuffer(100000)
-		self.cur_frame = 0
-		self.main_EDQN = eDQN()
-		self.target_EDQN = EDQN()
-		self.main_CDQN = CDQN()
-		self.target_CDQN = CDQN()
-		
-		self.optimizer = tf.keras.optimizers.Adam(1e-4)
-		self.mse = tf.keras.losses.MeanSquaredError()
-
-
-	def train_step(self, state, action, reward, next_state, done):
+	
+	def train(self, target_nn, env, state, action, reward, next_state, done):
 		'''Perform training on batch of data from replay buffer'''
 		# Calculate targets
-		next_qs = self.target_nn(next_state)
+		next_qs = target_nn(next_state)
 		max_next_qs = tf.reduce_max(next_qs, axis=-1)
 		target = reward + (1. - done) * config.discount * max_next_qs
 
 		with tf.GradientTape() as tape:
-			qs = self.main_nn(state)
-			action_mask = tf.one_hot(action, len(self.env.action_space))
+			qs = self.call(state)
+			print('qs:')
+			print(qs)
+			action_mask = tf.one_hot(action, len(env.action_space))
 			masked_qs = tf.reduce_sum(action_mask * qs, axis=-1)
-			loss = self.mse(target, masked_qs)
-		grads = tape.gradient(loss, self.main_nn.trainable_variables)
-		self.optimizer.apply_gradients(zip(grads, self.main_nn.trainable_variables))
+			loss = config.mse(target, masked_qs)
+		grads = tape.gradient(loss, self.trainable_variables)
+		config.optimizer.apply_gradients(zip(grads, self.trainable_variables))
 		return loss
-	
-	def select_epsilon_greedy_action(self, state, epsilon):
+
+class Main:
+	def __init__(self, act_buy, act_sell, act_wait, observe, reward, reset):
+		self.env = Environment(act_buy, act_sell, act_wait, observe, reward, reset)
+		config.epsilon = config.epsilon_reset
+		self.buffer = ReplayBuffer(100000)
+		self.EvalBuffer = ReplayBuffer(100000)
+		self.ChooseBuffer = ReplayBuffer(100000)
+		self.cur_frame = 0
+		self.target_EDQN = EDQN()
+		self.main_CDQN = CDQN()
+		self.target_CDQN = CDQN()
+
+	def feed_EDQN(self, total_state):
+		stock_data = total_state[0]
+		# get eval for each stock from EDQN
+		evals = []
+		for stock in range(0, config.NUMSTOCKS):
+			reshaped_state = np.reshape(stock_data[stock,:,:], (1, config.NUMBARS, 5))
+			eval = self.target_EDQN(reshaped_state)
+			evals.append(eval)
+		
+		# reshape to feed to CDQN
+		evals = np.array(evals)
+		evals = evals.reshape((config.NUMSTOCKS))
+		stock_info = np.vstack((total_state[1], evals))
+		mid_state = (total_state[2], stock_info) # stock info is array size [NUMSTOCKS, 1] which contains (position_size, evaluation)
+		return mid_state
+
+	def format_CDQN_output(self, output):
+		# format output
+		max_action = tf.argmax(output, axis=1).numpy()
+		best_action = -1
+		best_stock = -1
+		best_value = -100
+		for action in range(0, len(max_action)):
+			stock = tf.argmax(output[:, max_action[action]]).numpy()
+			value = output[stock, action]
+			if value > best_value:
+				best_value = value
+				best_action = action
+				best_stock = stock
+
+		return (best_action, best_stock)
+
+	# total_state[0] = stock_data[NUMSTOCKS, NUMBARS, 5]. total_state[1] = position size[NUMSTOCKS]. total_state[2] = buying power[1]
+	def select_epsilon_greedy_action(self, total_state, epsilon):
 		# Epsilon is probability of random action other wise take best action
 		result = tf.random.uniform((1,))
 		if result < epsilon:
 			return self.env.random_action()
 		else:
-			return tf.argmax(self.main_nn(state)[0]).numpy()
+
+			mid_state = self.feed_EDQN(total_state)
+			
+			# feed to CDQN
+			output = self.main_CDQN(mid_state)
+			return self.format_CDQN_output(output)
+			
 		
 	def continue_training(self, model):
 		config.epsilon = .5
@@ -122,15 +197,14 @@ class Main:
 			"actions": 0
 		}
 		for episode in range(config.num_episodes+1):
-			state = self.env.reset()
+			total_state = self.env.reset()
 			ep_equity, ep_reward, done, buying_errors, selling_errors = 0, 0, False, 0, 0
 			action_list = []
 			while not done:
-				#state_in = tf.expand_dims(state, axis=0)
-				action = self.select_epsilon_greedy_action(state, config.epsilon)
-				action_list.append(self.env.action_space[action].name)
-				next_state, reward, done, info = self.env.step(action)
-				ep_equity = reward
+				action = self.select_epsilon_greedy_action(total_state, config.epsilon)
+				action_list.append(action)
+				next_total_state, total_reward, done, info = self.env.step(action)
+				ep_equity = total_reward[1]
 				buying_errors = info[0]
 				selling_errors = info[1]
 				try:
@@ -139,17 +213,30 @@ class Main:
 					ep_reward = ep_equity * 1.5
 				
 				# Save to experience replay
-				self.buffer.add(state, action, ep_reward, next_state, done)
-				state = next_state
+				self.buffer.add(total_state, action, total_reward, next_total_state, done)
+
+				total_state = next_total_state
 				self.cur_frame += 1
 				# copy main_nn weights to target_nn
 				if self.cur_frame % 2000 == 0:
-					self.target_nn.set_weights(self.main_nn.get_weights())
+					self.target_CDQN.set_weights(self.main_CDQN.get_weights())
 				
-				# Train neural network
+				# Train neural networks
 				if len(self.buffer) >= config.batch_size:
-					state, action, reward, next_state, dones= self.buffer.sample()
-					loss = self.train_step(state, action, reward, next_state, done)
+					total_state, action, total_reward, next_total_state, dones = self.buffer.sample()
+
+					# Get mid_states for CDQN
+					mid_state = self.feed_EDQN(total_state)
+					next_mid_state = self.feed_EDQN(next_total_state)
+
+					# train EDQN
+					for stock in range(0, config.NUMSTOCKS):
+						reshaped_state = np.reshape(total_state[0][stock,:,:], (1, config.NUMBARS, 5))
+						self.target_EDQN.train(reshaped_state, total_reward[0][stock])
+
+					# train CDQN
+					loss = self.main_CDQN.train(self.target_CDQN, self.env, mid_state, action, total_reward[1], next_mid_state, dones)
+					
 				
 			if episode < config.num_episodes * config.epsilon_discount:
 				config.epsilon -= config.epsilon_discount / config.num_episodes
@@ -168,7 +255,7 @@ class Main:
 			if ep_reward > best["reward"]:
 				best["equity"] = ep_equity
 				best["reward"] = ep_reward
-				best["model"] = self.target_nn
+				best["model"] = (self.target_EDQN, self.target_CDQN)
 				best["actions"] = action_list
 
 			
@@ -204,14 +291,14 @@ class Environment:
 		return initial_observation
 
 	def step(self, action):
-		success = self.action_space[action].perform()
-		new_observation = self.observe_func()
-		reward = self.reward_func()
+		success = self.action_space[action[0]].perform(action[1])
+		total_state = self.observe_func()
+		total_reward = self.reward_func()
 
 		if not success:
-			if (self.action_space[action].name == 'Buy'):
+			if (self.action_space[action[0]].name == 'Buy'):
 				self.buying_errors += 1
-			elif (self.action_space[action].name == 'Sell'):
+			elif (self.action_space[action[0]].name == 'Sell'):
 				self.selling_errors += 1
 		#print('Reward: ' + str(reward))
 		done = False
@@ -219,11 +306,13 @@ class Environment:
 		if self.count > config.NUMTRADES:
 			done = True
 		info = (self.buying_errors, self.selling_errors)
-		return new_observation, reward, done, info
+		return total_state, total_reward, done, info
 		
 
 	def random_action(self):
-		return np.random.randint(0, len(self.action_space))
+		action = np.random.randint(0, len(self.action_space))
+		stock = np.random.randint(0, config.NUMSTOCKS)
+		return (action, stock)
 
 class Action:
 	def __init__(self, name, action):

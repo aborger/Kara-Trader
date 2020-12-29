@@ -49,6 +49,12 @@ class api:
 		
 	def list_positions(self):
 		return self.account.portfolio
+
+	def get_position(self, symbol):
+		for position in self.account.portfolio:
+			if position.symbol == symbol:
+				return position
+		return None
 		
 	def reset(self):
 		self.clock.reset_bars()

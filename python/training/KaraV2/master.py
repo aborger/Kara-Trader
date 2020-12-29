@@ -1,10 +1,10 @@
 from python.training.KaraV2.Level1.train_rnn import Main
+from python.training.KaraV2.Level1.train_rnn import config
 import os
 import shutil
 import numpy as np
 from python.training.KaraV2.Level1.v2trade import backtest
 
-NUMTRADES = 10
 LOGDIR = 'data/v2training/AI.'
 
 def train(Stock, User):
@@ -12,8 +12,12 @@ def train(Stock, User):
 	stocks = Stock.get_list()
 	# Create a policy and test
 	print('Creating first champion...')
-	champion = Policy(stocks[0], User, Stock)
+	champion = Policy(User, Stock)
 	champion.save()
+
+
+
+	'''
 	for stock in stocks:
 
 		# Create another policy and test
@@ -28,17 +32,18 @@ def train(Stock, User):
 			print('The reigning champion won with ' + str(contender.points))
 			contender.delete()
 		# Continue training champion
-		print('Trainning winner more')
+		print('Training winner more')
 		champion.learn_more()
 		champion.save()
+	'''
 			
 
 class Policy:
 	_policy_id = 0
-	def __init__(self, stock, User, Stock):
+	def __init__(self, User, Stock):
 		self.id = Policy._policy_id
 		Policy._policy_id += 1
-		self.trainer = Policy_trainer(stock, User)
+		self.trainer = Policy_trainer(User, Stock)
 		# Training
 		self.best = self.trainer.train()
 		self.Stock = Stock
@@ -86,47 +91,69 @@ class Policy:
 		shutil.rmtree("data/v2training/AI." + str(self.id))
 		
 class Policy_trainer:
-	def __init__(self, stock, User):
-		self.stock = stock
+	def __init__(self, User, Stock):
 		self.User = User
+		self.Stock = Stock
 		# Give Q functions
 		# act = possible move
 		self.Q = Main(self.act_buy, self.act_sell, self.act_wait, self.observe, self.reward, self.reset)
 		
 	# --------------------- Actions --------------------
-	def act_buy(self):
-		success = self.stock.buy(self.User.get_api(), 1)
+	def act_buy(self, stock_num):
+		stock = self.Stock.get_list()[stock_num]
+		success = stock.buy(self.User.get_api(), 1)
 		self.User.next_bar()
 		return success
 
-	def act_sell(self):
-		success = self.stock.sell(self.User.get_api(), 1)
+	def act_sell(self, stock_num):
+		stock = self.Stock.get_list()[stock_num]
+		success = stock.sell(self.User.get_api(), 1)
 		self.User.next_bar()
 		return success
 
-	def act_wait(self):
+	def act_wait(self, stock_num):
 		#print('Next Day')
 		self.User.next_bar()
 		return True
 
 	# ----------------------------------------------------
 	def observe(self):
-		positions = self.User.get_api().list_positions()
-		position_qty = 0
-		for pos in positions:
-			if pos.symbol == self.stock.symbol:
-				position_qty = pos.qty
+		# total_state[0] = stock_data[NUMSTOCKS, NUMBARS, 5]. total_state[1] = position_size[NUMSTOCKS]. total_state[2] = buying_power[1]
+		stocks = self.Stock.get_list()
 
-		dataSet = [self.User.get_api().get_account().buying_power, position_qty]
-		npDataSet = np.array(dataSet)
-		reshapedSet = np.reshape(npDataSet, (1, 2))
+		stock_data = np.zeros((config.NUMSTOCKS, config.NUMBARS, 5))
+		for stock in range(0, len(stocks)):
+			stock_data[stock] = stocks[stock].get_prev_bars()
 
-		return (self.stock.get_prev_bars(), reshapedSet)
+		position_size = []
+		for stock in stocks:
+			position = self.User.get_api().get_position(stock.symbol)
+			if position is None:
+				position_size.append(0)
+			else:
+				position_size.append(position.qty)
+
+		position_size = np.array(position_size)
+		buying_power = self.User.get_api().get_account().buying_power
+		
+
+		return (stock_data, position_size, buying_power)
 
 	def reward(self):
+		stocks = self.Stock.get_list()
+		gains = []
+		for stock in stocks:
+			position = self.User.get_api().get_position(stock.symbol)
+			if position is None:
+				gains.append(0)
+			else:
+				gain = (position.current_price - position.entry_price) / position.entry_price
+				gains.append(gain)
+
 		equity = self.User.get_api().get_account().equity
-		#print('Equity = ' + str(equity))
-		return equity
+		
+		return (gains, equity)
+
 	def reset(self):
 		self.User.reset()	
 
