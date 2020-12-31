@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+
 
 class Time_frame:
 	_frames = []
@@ -29,7 +29,7 @@ class Time_frame:
 			gain = 0
 		self.gain = gain
 	
-	def get_normalized_data(self):
+	def get_data(self):
 		# Get bars
 		barset = Time_frame._api.get_barset(self.symbol,self.frame_name,limit=Time_frame._NUMBARS)
 		
@@ -49,14 +49,7 @@ class Time_frame:
 			dataSet.append(bar)
 			
 		  
-		# Convert to numpy array
-		npDataSet = np.array(dataSet)
-		reshapedSet = np.reshape(npDataSet, (1, Time_frame._NUMBARS, 5))
-		# Normalize Data
-		sc = MinMaxScaler(feature_range=(0,1))
-		normalized = np.empty(shape=(1, Time_frame._NUMBARS, 5)) 
-		normalized[0] = sc.fit_transform(reshapedSet[0])
-		return normalized
+		return dataSet
 		
 	def get_prediction(self):
 		#print('Getting prediction for ' self.symbol ' on ' + time_frame + ' time frame')

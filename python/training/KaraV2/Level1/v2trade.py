@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from python.training.KaraV2.Level1.train_rnn import feed_EDQN, format_CDQN_output
 
 def backtest(numdays, model, Stock, User, id):
 	for day in range(0, numdays):
@@ -23,22 +24,37 @@ def trade(model, Stock, User):
 
 	if User.get_api().get_clock().is_open:
 		for user in User.get_user_list():
-			for stock in Stock.get_list():
-				# get account data
-				positions = user.get_user_api().list_positions()
-				position_qty = 0
-				for pos in positions:
-					if pos.symbol == stock.symbol:
-						position_qty = pos.qty
 
-				dataSet = [user.get_user_api().get_account().buying_power, position_qty]
-				npDataSet = np.array(dataSet)
-				reshapedSet = np.reshape(npDataSet, (1, 2))
+			buying_power = user.get_user_api().get_account().buying_power
 
-				state = (stock.get_prev_bars(), reshapedSet)
-				action_num = tf.argmax(model(state)[0]).numpy()
-				action = Actions(stock, user)
-				action.perform(action_num)
+			stock_bars = []
+			position_size = []
+			buying_power_ratios = []
+
+			for stock in stocks:
+				# stock bars
+				stock_bars.append(stock.get_prev_bars())
+
+				# position size
+				position = user.get_user_api().get_position(stock.symbol)
+				if position is None:
+					position_size.append(0)
+				else:
+					position_size.append(position.qty)
+
+				# buying power ratios
+				buying_power_ratio = buying_power / stock.get_current_price()
+				buying_power_ratios.append(buying_power_ratio)
+
+			total_state = (stock_bars, position_size, buying_power_ratios)
+			mid_state = feed_EDQN(model[0], total_state)
+			mid_output = model[1](mid_state)
+			output = format_CDQN_output(output)
+
+
+
+			action = Actions(output[1], user)
+			action.perform(output[0])
 	else:
 		print('Stock market is not open today.')
 		

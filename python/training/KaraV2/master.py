@@ -2,7 +2,6 @@ from python.training.KaraV2.Level1.train_rnn import Main
 from python.training.KaraV2.Level1.train_rnn import config
 import os
 import shutil
-import numpy as np
 from python.training.KaraV2.Level1.v2trade import backtest
 
 LOGDIR = 'data/v2training/AI.'
@@ -13,6 +12,8 @@ def train(Stock, User):
 	# Create a policy and test
 	print('Creating first champion...')
 	champion = Policy(User, Stock)
+	champion.save()
+	champion.learn_more()
 	champion.save()
 
 
@@ -64,7 +65,7 @@ class Policy:
 		# Validation
 		for user in User.get_user_list():
 			user.get_user_api().reset()
-		self.points = backtest(NUMTRADES, self.best["model"], Stock, User, self.id)
+		self.points = backtest(config.NUMTRADES, self.best["model"], Stock, User, self.id)
 		
 		
 	def learn_more(self):
@@ -118,26 +119,31 @@ class Policy_trainer:
 
 	# ----------------------------------------------------
 	def observe(self):
-		# total_state[0] = stock_data[NUMSTOCKS, NUMBARS, 5]. total_state[1] = position_size[NUMSTOCKS]. total_state[2] = buying_power[1]
+		# total_state[0] = stock_bars[NUMSTOCKS, NUMBARS, 5]. total_state[1] = position_size[NUMSTOCKS]. total_state[2] = buying_power_ratio[NUMSTOCKS]
 		stocks = self.Stock.get_list()
 
-		stock_data = np.zeros((config.NUMSTOCKS, config.NUMBARS, 5))
-		for stock in range(0, len(stocks)):
-			stock_data[stock] = stocks[stock].get_prev_bars()
+		buying_power = self.User.get_api().get_account().buying_power
 
+		stock_bars = []
 		position_size = []
+		buying_power_ratios = []
+
 		for stock in stocks:
+			# stock bars
+			stock_bars.append(stock.get_prev_bars())
+
+			# position size
 			position = self.User.get_api().get_position(stock.symbol)
 			if position is None:
 				position_size.append(0)
 			else:
 				position_size.append(position.qty)
 
-		position_size = np.array(position_size)
-		buying_power = self.User.get_api().get_account().buying_power
-		
+			# buying power ratios
+			buying_power_ratio = buying_power / stock.get_current_price()
+			buying_power_ratios.append(buying_power_ratio)
 
-		return (stock_data, position_size, buying_power)
+		return (stock_bars, position_size, buying_power_ratios)
 
 	def reward(self):
 		stocks = self.Stock.get_list()
