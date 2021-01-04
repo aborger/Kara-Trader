@@ -1,11 +1,11 @@
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
+
 class Time_frame:
     _frames = []
     _NUMBARS = 0
     _model = 0
-    _api = 0
     # time_frame can be 1Min, 5Min, 15Min, or 1D
     def __init__(self, frame, symbol):
         self.frame_name = frame
@@ -13,15 +13,21 @@ class Time_frame:
         self._frames.append(self)
     
 
-    def get_current_price(self):
-        barset = (Time_frame._api.get_barset(self.symbol,'1Min',limit=1))
+    def setup(NUMBARS, model):
+        Time_frame._NUMBARS = NUMBARS
+        Time_frame._model = model
+        
+    def get_current_price(self, api):
+        barset = (api.get_barset(self.symbol,'1Min',limit=1))
         symbol_bars = barset[self.symbol]
         current_price = symbol_bars[0].c
         return current_price
     
-    def get_gain(self):
-        prediction = self.get_prediction()
-        current = self.get_current_price()
+    def get_gain(self, api):
+        print('predicting using account with ' + str(api.get_account().equity) + ' dollars')
+        prediction = self.get_prediction(api)
+        print('prediction done.')
+        current = self.get_current_price(api)
         
         gain = prediction/current
         gain = round((gain -1) * 100, 3)
@@ -30,10 +36,11 @@ class Time_frame:
         self.gain = gain
     
     
-    def get_prediction(self):
+    def get_prediction(self, api):
         #print('Getting prediction for ' self.symbol ' on ' + time_frame + ' time frame')
         # Get bars
-        barset = (Time_frame._api.get_barset(self.symbol,self.frame_name,limit=Time_frame._NUMBARS))
+        barset = (api.get_barset(self.symbol,self.frame_name,limit=Time_frame._NUMBARS))
+        print('got bars')
         # Get symbol's bars
         symbol_bars = barset[self.symbol]
 
@@ -60,7 +67,12 @@ class Time_frame:
         normalized[0] = sc.fit_transform(reshapedSet[0])
         
         # Predict Price
-        predicted_price = Time_frame._model.predict(normalized)
+        print('predicting...')
+        print('Loading AI...')
+        from tensorflow import keras
+        model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+        predicted_price = model.predict(normalized)
+        print('got predicted price')
         
         
         # Add 4 columns of 0 onto predictions so it can be fed back through sc
@@ -76,10 +88,7 @@ class Time_frame:
         return predicted_price[0][0]
     
 
-    def setup(NUMBARS, model, api):
-        Time_frame._NUMBARS = NUMBARS
-        Time_frame._model = model
-        Time_frame._api = api
+
     
     def get_max_gain(_model):
         prediction_list = []

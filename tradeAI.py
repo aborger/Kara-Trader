@@ -88,12 +88,12 @@ def trade(model, Stock):
 	from time import sleep
 
 
-	if User.get_api().get_clock().is_open:
+	if True: #User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		User.users_sell()
 		# At open, get 5 best stocks and their buy ratio
 		print('Calculating best stocks...')
-		best_stocks = Stock.collect_stocks(5)
+		best_stocks = Stock.collect_stocks(5, User.get_api_list())
 		# Sell any open positions
 		
 		# Buy the best stocks
@@ -131,7 +131,7 @@ def import_data(is_test, is_backtest, time_frame):
 	
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, User.get_api(), time_frame)
+	Stock.setup(NUMBARS, model, time_frame)
 	'''
 	for symbol in sp:
 		this_stock = Stock(symbol)

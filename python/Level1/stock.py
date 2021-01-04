@@ -1,19 +1,25 @@
 from python.Level1.Level2.time_frame import Time_frame
+from pathos.multiprocessing import ProcessingPool as Pool
 BACKTEST = 'data/backTest/'
 
 class Stock:
-	_api = 0
 	_period = 0
 	_loss_percent = .01
 	
-	def setup(NUMBARS, model, api, period):
+	def __init__(self, symbol):
+		self.symbol = symbol
+		self._stocks.append(self)
+		
+		self.frames = [Time_frame('1Min', symbol), Time_frame('5Min', symbol),
+						Time_frame('15Min', symbol), Time_frame('1D', symbol)]
+						
+	def setup(NUMBARS, model, period):
 		Stock._stocks = []
-		Time_frame.setup(NUMBARS, model, api)
-		Stock._api = api
+		Time_frame.setup(NUMBARS, model)
 		Stock._period = Stock._convert_frame_name(period)
 		
-	def get_current_price(self):
-		return self.frames[Stock._period].get_current_price()
+	def get_current_price(self, api):
+		return self.frames[Stock._period].get_current_price(api)
 		
 	def _convert_frame_name(time_frame):
 		if time_frame == '1Min':
@@ -30,8 +36,8 @@ class Stock:
 		
 	# Main function used by trade ai
 	# gives dict with best stocks and their buy ratio
-	def collect_stocks(num_stocks):
-		best_stocks = Stock._highest_gain(num_stocks)
+	def collect_stocks(num_stocks, api_list):
+		best_stocks = Stock._highest_gain(num_stocks, api_list)
 		gain_sum = 0
 		for stock in best_stocks:
 			gain_sum += stock.frames[Stock._period].gain
@@ -45,39 +51,46 @@ class Stock:
 			this_stock = dict(stock_object = stock, buy_ratio = this_buy_ratio/100)
 			stocks.append(this_stock)
 		return stocks
+	
+	def _find_gain(stock, api):
+		print(stock.symbol)
+		try:
+			stock.frames[Stock._period].get_gain(api)
+			print('done')
+			return 0
+		except:
+			return 0
+		
 	# returns num_stocks best stocks
-	def _highest_gain(num_stocks): 
+	def _highest_gain(num_stocks, api_list): 
 				
 		def get_gain(stock):
 				return stock.frames[Stock._period].gain
 		
+		print('Number of stocks: ' + str(len(Stock._stocks)))
+		
+			
+		print('calculating...')
+		# find gain for every stock
+		Pool().map(Stock._find_gain, Stock._stocks, api_list)
+		
+		
+		# Add best gains to max_stocks
 		# Currently only using 5 max gains
-		#print("Getting highest gain...")
 		max_stocks = []
 		for stock in Stock._stocks:
-			try:
-				stock.frames[Stock._period].get_gain()
-			except:
-				pass
-			else:
-				#print(stock.symbol + "'s gain is " + str(stock.frames[Stock._period].gain))
 				if len(max_stocks) < num_stocks:
 					max_stocks.append(stock)
 				elif stock.frames[Stock._period].gain > max_stocks[num_stocks - 1].frames[Stock._period].gain:
 					max_stocks.pop()
 					max_stocks.append(stock)
 				
-				# sort list so lowest gain is at the end
-				max_stocks.sort(reverse=True, key=get_gain)
+		# sort list so lowest gain is at the end
+		max_stocks.sort(reverse=True, key=get_gain)
 		return max_stocks
 	
 	
-	def __init__(self, symbol):
-		self.symbol = symbol
-		self._stocks.append(self)
-		
-		self.frames = [Time_frame('1Min', symbol), Time_frame('5Min', symbol),
-						Time_frame('15Min', symbol), Time_frame('1D', symbol)]
+	
 		
 	def get_gain(self):
 		return self.frames[Stock._period].gain
@@ -90,6 +103,7 @@ class Stock:
 		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
 
 		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
+		'''
 		try:
 			api.submit_order(
 				symbol=self.symbol,
@@ -100,7 +114,7 @@ class Stock:
 		except:
 			print('Failed to buy')
 			pass
-		
+		'''
 
 		
 	def trailing_stop(name, api, quantity, percent):
@@ -118,26 +132,26 @@ class Stock:
 	def sell(self, api, quantity):
 		#print('=====================================')
 		#print ('Sold ' + self.symbol)
-		
+		'''
 		api.submit_order(
 			symbol=self.symbol,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
-		
+		'''
 			
 	def sell_named_stock(name, api, quantity):
 		#print('=====================================')
 		print ('Sold ' + name + ' qty: ' + str(quantity))
-		
+		'''
 		api.submit_order(
 			symbol=name,
 			qty=quantity,
 			side='sell',
 			type='market',
 			time_in_force='gtc')
-		
+		'''
 		#except:
 		#	print('Cannot sell due to day trade restrictions')
 		#finally:

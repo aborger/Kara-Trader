@@ -57,6 +57,13 @@ class User:
 	def get_api(cls):
 		return cls._users[0].api
 		
+	@classmethod
+	def get_api_list(cls):
+		apis = []
+		for user in cls._users:
+			apis.append(user.api)
+		return apis
+		
 	# Individual stats
 	def get_equity(self):
 		account = self.api.get_account()
@@ -277,7 +284,8 @@ class User:
 	@classmethod
 	def cancel_orders(cls):
 		for user in cls._users:
-			user.api.cancel_all_orders()
+			pass
+			#user.api.cancel_all_orders()
 	@classmethod
 	def users_sell(cls):
 		print('                Selling')
