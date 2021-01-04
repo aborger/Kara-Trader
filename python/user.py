@@ -210,8 +210,7 @@ class User:
 	def users_buy(cls, best_stocks):
 		# Buy stocks for each user
 		for user in cls._users:
-			#print('User: ' + user.info['email'])
-			print('                 Buying   ')
+			print(user.info['email'] + ' Buying')
 			print('========================================')
 			# find cheapest stock to make sure we buy as much as possible
 			cheapest_price = 999999
