@@ -31,6 +31,8 @@ def trade(model, Stock, User):
 			position_size = []
 			buying_power_ratios = []
 
+			stocks = Stock.get_list()
+
 			for stock in stocks:
 				# stock bars
 				stock_bars.append(stock.get_prev_bars())

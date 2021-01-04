@@ -4,10 +4,9 @@ import tensorflow as tf
 import math
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
-import multiprocessing
 
 class config:
-	num_episodes = 500
+	num_episodes = 50
 	epsilon = 1
 	epsilon_reset = 1
 	epsilon_discount = 0.95
@@ -208,7 +207,6 @@ class Main:
 		self.main_nn.set_weights(model.get_weights())
 		model = self.train()
 		return model
-
 		
 	def train(self):
 		last_100_ep_equities = []
