@@ -1,163 +1,212 @@
-from python.Level1.Level2.time_frame import Time_frame
 from pathos.multiprocessing import ProcessingPool as Pool
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 BACKTEST = 'data/backTest/'
 
 class Stock:
-	_period = 0
+	_NUMBARS = None
+	_model = None
+	_time_frame = None
 	_loss_percent = .01
-	
-	def __init__(self, symbol, NUMBARS, model):
-		self.symbol = symbol
-		self._stocks.append(self)
-		
-		self.frames = [Time_frame('1Min', symbol, NUMBARS, model), Time_frame('5Min', symbol, NUMBARS, model),
-						Time_frame('15Min', symbol, NUMBARS, model), Time_frame('1D', symbol, NUMBARS, model)]
-						
-	def setup(NUMBARS, model, period):
-		Stock._stocks = []
-		Time_frame.setup(NUMBARS, model)
-		Stock._period = Stock._convert_frame_name(period)
-		
-	def get_current_price(self, api):
-		return self.frames[Stock._period].get_current_price(api)
-		
-	def _convert_frame_name(time_frame):
-		if time_frame == '1Min':
-			time_frame = 0
-		elif time_frame == '5Min':
-			time_frame = 1
-		elif time_frame == '15Min':
-			time_frame = 2
-		elif time_frame == '1D':
-			time_frame = 3
-		else:
-			raise InputError('Incorrect time frame')
-		return time_frame
-		
-	# Main function used by trade ai
-	# gives dict with best stocks and their buy ratio
-	def collect_stocks(num_stocks, api_list):
-		best_stocks = Stock._highest_gain(num_stocks, api_list)
-		gain_sum = 0
-		for stock in best_stocks:
-			gain_sum += stock.frames[Stock._period].gain
-		if gain_sum == 0:
-			value_per_gain = 0
-		else:
-			value_per_gain = 100/gain_sum
-		stocks = []
-		for stock in best_stocks:
-			this_buy_ratio = stock.frames[Stock._period].gain * value_per_gain
-			this_stock = dict(stock_object = stock, buy_ratio = this_buy_ratio/100)
-			stocks.append(this_stock)
-		return stocks
-	
-	@classmethod
-	def _find_gain(cls, stock, api):
-		print(stock.symbol)
-		stock.frames[Stock._period].get_gain(api)
-		print('done')
-		return 0
+	_stocks = []
 
-		
-	# returns num_stocks best stocks
+	#-----------------------------------------------------------------------#
+	#								Initializing							#
+	#-----------------------------------------------------------------------#
+	def __init__(self, ticker):
+		self.gain = None
+		if isinstance(ticker, str): # its a regular string
+			self.symbol = ticker
+			Stock._stocks.append(self)
+		else: # create a stock object from position object
+			self.symbol = ticker.symbol
+
+
 	@classmethod
-	def _highest_gain(cls, num_stocks, api_list): 
-				
-		def get_gain(stock):
-				return stock.frames[Stock._period].gain
+	def setup(cls, NUMBARS, model, time_frame):
+		cls._NUMBARS = NUMBARS
+		cls._model = model
+		cls._time_frame = time_frame
 		
-		print('Number of stocks: ' + str(len(Stock._stocks)))
+
+
+	#-----------------------------------------------------------------------#
+	#								Individual								#
+	#-----------------------------------------------------------------------#
 		
+	def find_current_price(self, api):
+		barset = (api.get_barset(self.symbol,'1Min',limit=1))
+		symbol_bars = barset[self.symbol]
+		current_price = symbol_bars[0].c
+		return current_price
+
+	def find_prediction(self, api):
+		# Get bars
+		barset = (api.get_barset(self.symbol, Stock._time_frame, limit=Stock._NUMBARS))
+		# Get symbol's bars
+		symbol_bars = barset[self.symbol]
+
+		# Convert to list
+		dataSet = []
+
+		for barNum in symbol_bars:
+			bar = []
+			bar.append(barNum.o)
+			bar.append(barNum.c)
+			bar.append(barNum.h)
+			bar.append(barNum.l)
+			bar.append(barNum.v)
+			dataSet.append(bar)
 			
-		print('calculating...')
-		# find gain for every stock
-		pool = Pool()
-		done = pool.map(Stock._find_gain, Stock._stocks, api_list)
+		  
+		# Convert to numpy array
+		npDataSet = np.array(dataSet)
+		reshapedSet = np.reshape(npDataSet, (1, Stock._NUMBARS, 5))
+		
+		# Normalize Data
+		sc = MinMaxScaler(feature_range=(0,1))
+		normalized = np.empty(shape=(1, Stock._NUMBARS, 5)) 
+		normalized[0] = sc.fit_transform(reshapedSet[0])
+		
+		# Predict Price
+		predicted_price = Stock._model.predict(normalized)
+		
+		
+		# Add 4 columns of 0 onto predictions so it can be fed back through sc
+		shaped_predictions = np.empty(shape = (1, 5))
+		for row in range(0, 1):
+			shaped_predictions[row, 0] = predicted_price[row, 0]
+		for col in range (1, 5):
+			shaped_predictions[row, col] = 0
+		
+		
+		# undo normalization
+		predicted_price = sc.inverse_transform(shaped_predictions)
+		return predicted_price[0][0]
 
-		print(done)
-		
-		# Add best gains to max_stocks
-		# Currently only using 5 max gains
-		max_stocks = []
-		for stock in Stock._stocks:
-				if len(max_stocks) < num_stocks:
-					max_stocks.append(stock)
-				elif stock.frames[Stock._period].gain > max_stocks[num_stocks - 1].frames[Stock._period].gain:
-					max_stocks.pop()
-					max_stocks.append(stock)
-				
-		# sort list so lowest gain is at the end
-		max_stocks.sort(reverse=True, key=get_gain)
-		return max_stocks
+	def find_gain(self, api):
+			prediction = self.find_prediction(api)
+			current = self.find_current_price(api)
+			
+			gain = prediction/current
+			gain = round((gain -1) * 100, 3)
+			if gain < 0:
+				gain = 0
+			self.gain = gain
+			return gain
+
 	
+	#-----------------------------------------------------------------------#
+	#									Trading								#
+	#-----------------------------------------------------------------------#
 	
-	
-		
-	def get_gain(self):
-		return self.frames[Stock._period].gain
-	
+	ACTUALLY_TRADE = False
+
 	def buy(self, api, quantity):
-		#bought_price = self.frames[0].get_current_price()
-
-		#self.stop_price = bought_price - (bought_price * Stock._loss_percent)
-		#print ('Bought ' + str(quantity) + ' shares of ' + self.symbol
-		#		+ ' at ' + str(bought_price) + '. Gain: ' + str(self.frames[Stock._period].gain))
-
-		print ('Bought ' + self.symbol + ' QTY: ' + str(quantity))
-		'''
-		try:
+		print ('Buying ' + self.symbol + ' QTY: ' + str(quantity))
+		if ACTUALLY_TRADE:
 			api.submit_order(
 				symbol=self.symbol,
 				qty=quantity,
 				side='buy',
 				type='market',
 				time_in_force='gtc')
-		except:
-			print('Failed to buy')
-			pass
-		'''
+		else:
+			print('WARNING, ACTUALLY TRADE = FALSE')
 
-		
-	def trailing_stop(name, api, quantity, percent):
-		print('Applying trailing stop: ')
-		print(name)
-		# submits trailing stop order
-		api.submit_order(
-			symbol=name,
-			qty=quantity,
-			side='sell',
-			type='trailing_stop',
-			time_in_force='gtc',
-			trail_percent=percent)
-			
 	def sell(self, api, quantity):
-		#print('=====================================')
-		#print ('Sold ' + self.symbol)
-		'''
-		api.submit_order(
-			symbol=self.symbol,
-			qty=quantity,
-			side='sell',
-			type='market',
-			time_in_force='gtc')
-		'''
-			
-	def sell_named_stock(name, api, quantity):
-		#print('=====================================')
-		print ('Sold ' + name + ' qty: ' + str(quantity))
-		'''
-		api.submit_order(
-			symbol=name,
-			qty=quantity,
-			side='sell',
-			type='market',
-			time_in_force='gtc')
-		'''
-		#except:
-		#	print('Cannot sell due to day trade restrictions')
-		#finally:
-			#pass
+		print ('Sold ' + self.symbol)
+		if ACTUALLY_TRADE:
+			api.submit_order(
+				symbol=self.symbol,
+				qty=quantity,
+				side='sell',
+				type='market',
+				time_in_force='gtc')
+		else:
+			print('WARNING, ACTUALLY TRADE = FALSE')
+		
+	def trailing_stop(self, api, quantity, percent):
+		print('Applying trailing stop for ' + self.symbol)
+		if ACTUALLY_TRADE:
+			api.submit_order(
+				symbol=self.symbol,
+				qty=quantity,
+				side='sell',
+				type='trailing_stop',
+				time_in_force='gtc',
+				trail_percent=percent)
+		else:
+			print('WARNING, ACTUALLY TRADE = FALSE')
+		
+	#-----------------------------------------------------------------------#
+	#								Calculations							#
+	#-----------------------------------------------------------------------#
+	
+	# Main function used by tradeAI
+	# Returns two items: diversified_stocks and second_best_stocks
+	# diversified_stocks is dict with best stocks and their buy ratio
+	# second_best_stocks is num_best_stocks next best stocks
+	@classmethod
+	def find_diversity(cls, num_best_stocks, api):
+		best_stocks, all_best_stocks = Stock._find_best(num_best_stocks, api)
+		gain_sum = 0
+		for stock in best_stocks:
+			gain_sum += stock.gain
+		if gain_sum == 0:
+			value_per_gain = 0
+		else:
+			value_per_gain = 100/gain_sum
+		diversified_stocks = []
+		for stock in best_stocks:
+			this_buy_ratio = stock.gain * value_per_gain
+			this_stock = dict(stock_object = stock, buy_ratio = this_buy_ratio/100)
+			diversified_stocks.append(this_stock)
+		return diversified_stocks, all_best_stocks
+	
+	@classmethod
+	def _find_gain(cls, stock, api):
+		stock.find_gain(api)
+		return 0
+		
+	# returns tuple of two lists
+	# list[0] = num_best_stocks of the highest gains. If num_best_stocks is 5, list[0] is the top 5 stocks
+	# list[1] = next numb_best_stocks of the next highest gains. If num_best_stocks is 5, list[1] is the next top 5 stocks
+	@classmethod
+	def _find_best(cls, num_best_stocks, api): 
+				
+		def get_gain(stock):
+				return stock.gain
+		
+		# find gain for every stock
+		# use multiprocessing here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+		for stock in cls.get_stock_list():
+			cls._find_gain(stock, api)
+
+
+
+		# Add best gains to max_stocks
+		max_stocks = []
+		for stock in Stock._stocks:
+				if len(max_stocks) < num_best_stocks * 2:
+					max_stocks.append(stock)
+				elif stock.gain > max_stocks[-1].gain:
+					max_stocks.pop()
+					max_stocks.append(stock)
+				
+		# sort list so lowest gain is at the end
+		max_stocks.sort(reverse=True, key=get_gain)
+		best = max_stocks[0:num_best_stocks]
+		return best, max_stocks
+
+	#-----------------------------------------------------------------------#
+	#									Getters								#
+	#-----------------------------------------------------------------------#
+
+	@classmethod
+	def get_stock_list(cls):
+		return cls._stocks
+
 
 
 		

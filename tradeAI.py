@@ -81,23 +81,23 @@ def trailing(is_paper):
     else:
         print('Stock market is not open today.')
 
-def trade(model, Stock):
-		
+def trade(Stock, model):
+	NUM_BEST_STOCKS = 5
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
 	from time import sleep
 
 
-	if True: #User.get_api().get_clock().is_open:
+	if User.get_api().get_clock().is_open:
 		User.cancel_orders()
-		User.users_sell()
-		# At open, get 5 best stocks and their buy ratio
-		print('Calculating best stocks...')
-		best_stocks = Stock.collect_stocks(5, User.get_api_list())
 		# Sell any open positions
+		User.users_sell_all()
+		# Gets best stocks and ratio of how many to buy
+		print('Calculating best stocks...')
+		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_api())
 		
 		# Buy the best stocks
-		User.users_buy(best_stocks)
+		User.users_buy(diversified_stocks, best_stocks)
 	else:
 		print('Stock market is not open today.')
 		
@@ -109,9 +109,14 @@ def import_data(is_test, is_backtest, time_frame):
 	from tensorflow import keras
 	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 	
+	# setup stocks
+	from python.Level1.stock import Stock
+	Stock.setup(NUMBARS, model, time_frame)
+
+
 	# Load S&P500
 	print('Loading stock list...')
-	'''
+	
 	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
 	df = table[0]
 	sp = df['Symbol']
@@ -126,20 +131,18 @@ def import_data(is_test, is_backtest, time_frame):
 
 	if is_backtest:
 		sp = tradeapi.api.get_data(sp, time_frame)
-	'''
-
 	
-	# setup stocks
-	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame)
-	'''
 	for symbol in sp:
 		this_stock = Stock(symbol)
+	
+
 	'''
 	import alpaca_trade_api as theapi
+	# get all available stocks
 	assets = User.get_api().list_assets(status='active')
 	for asset in assets:
-		this_stock = Stock(asset.symbol, NUMBARS, model)
+		this_stock = Stock(asset.symbol)
+	'''
 	
 	
 	
@@ -188,7 +191,7 @@ if __name__ == '__main__':
 	# Everything else
 		import alpaca_trade_api as tradeapi
 		from python.user import User
-		User.update_users(args.p, tradeapi)
+		User.update_users(True, tradeapi)
 		
 		if args.command == 'train':
 			train(args.name)
@@ -201,7 +204,7 @@ if __name__ == '__main__':
 
 			Stock, model = import_data(args.t, args.b, args.time)
 
-			trade(model, Stock)
+			trade(Stock, model)
 		
 		elif args.command == 'charge':
 			charge()

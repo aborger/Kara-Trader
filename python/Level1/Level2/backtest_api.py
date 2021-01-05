@@ -8,6 +8,11 @@ STOCKDIR = '../Stock_Data/'
 DAYS_TO_COLLECT = 700
 NUMBARS = 10
 
+
+#-----------------------------------------------------------------------#
+#									API									#
+#-----------------------------------------------------------------------#
+
 class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
 	_alpacaAPI = alpacaUser.get_api()
@@ -113,6 +118,10 @@ class api:
 					working_stocks.append(stock)
 		return working_stocks
 
+#-----------------------------------------------------------------------#
+#									Clock								#
+#-----------------------------------------------------------------------#
+
 class Clock:
 	def __init__(self):
 		self.is_open = True
@@ -134,7 +143,9 @@ class Clock:
 		self.days_past += 1
 		
 		
-		
+#-----------------------------------------------------------------------#
+#									Account								#
+#-----------------------------------------------------------------------#
 	
 class Account:
 	def __init__(self, value):
@@ -190,6 +201,10 @@ class Account:
 			print('Price: ' + str(position.current_price))
 			print('Value: ' + str(position.qty * position.entry_price))
 		
+
+#-----------------------------------------------------------------------#
+#								Position								#
+#-----------------------------------------------------------------------#
 class Position:
 	def __init__(self, symbol, qty, entry_price):
 		self.symbol = symbol
@@ -212,6 +227,10 @@ def REST(key_id, secret_key, base_url):
 		new_api = api(secret_key)
 		return new_api
 		
+
+#-----------------------------------------------------------------------#
+#									rest								#
+#-----------------------------------------------------------------------#
 class rest:
 	class APIError(Exception): 
 		print('APIError has occured')
