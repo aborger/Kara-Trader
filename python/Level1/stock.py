@@ -136,7 +136,9 @@ class Stock():
 			pool.close()
 	
 		else:
-			stocks_with_gains = find_gain(stock) for stock in cls.get_stock_list()
+			stocks_with_gains = []
+			for stock in cls.get_stock_list():
+				stocks_with_gains.append(find_gain(stock)) 
 
 
 
