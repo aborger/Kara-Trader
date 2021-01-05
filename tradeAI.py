@@ -4,6 +4,7 @@
 # Ex: If NUMBARS=4 use monday-thursday to predict friday 
 
 import pandas as pd
+import time
 
 NUMBARS = 10
 TRAINBARLENGTH = 1000
@@ -81,7 +82,7 @@ def trailing(is_paper):
     else:
         print('Stock market is not open today.')
 
-def trade(Stock, model):
+def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
 	#from python.stock import Stock
 	#from python.PYkeys import Keys
@@ -94,8 +95,13 @@ def trade(Stock, model):
 		User.users_sell_all()
 		# Gets best stocks and ratio of how many to buy
 		print('Calculating best stocks...')
-		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_api())
-		
+
+		start_time = time.time()
+		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS)
+		end_time = time.time()
+
+		print(f"Time to predict is {end_time - start_time}")
+
 		# Buy the best stocks
 		User.users_buy(diversified_stocks, best_stocks)
 	else:
@@ -109,9 +115,16 @@ def import_data(is_test, is_backtest, time_frame):
 	from tensorflow import keras
 	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 	
+	if is_backtest:
+		from python.user import backtestUser as User
+		User.update_users(is_test, tradeapi)
+	else:
+		from python.user import User
+		User.update_users(is_test, tradeapi)
+
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame)
+	Stock.setup(NUMBARS, model, time_frame, User.get_api())
 
 
 	# Load S&P500
@@ -146,7 +159,7 @@ def import_data(is_test, is_backtest, time_frame):
 	
 	
 	
-	return Stock, model
+	return Stock, User, model
 	
 #===================================================================#
 #								Command Line						#
@@ -169,7 +182,7 @@ if __name__ == '__main__':
 						help = "Time period to buy and sell on")
 
 	parser.add_argument("-p", action='store_true', required=False,
-						help='When trading include -f to only trade paper account')
+						help='When trading include -p to only trade paper account')
 			
 	args = parser.parse_args()
 
@@ -181,30 +194,24 @@ if __name__ == '__main__':
 	if args.b:
 		num_days = input("Enter the number of days to backtest: ") 
 		import python.Level1.Level2.backtest_api as tradeapi
-		from python.user import backtestUser as User
-		User.update_users(args.p, tradeapi)
 		
-		Stock, model = import_data(args.t, args.b, args.time)
+		
+		Stock, User, model = import_data(args.t, args.b, args.time)
 
 		backtest(int(num_days), model, Stock)
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
-		from python.user import User
-		User.update_users(True, tradeapi)
+		Stock, User, model = import_data(args.t, args.b, args.time)
 		
 		if args.command == 'train':
 			train(args.name)
 
 		elif args.command == 'test':
-			Stock, model = import_data(args.t, args.b, args.time)
 			test()
 
 		elif args.command == 'buy':
-
-			Stock, model = import_data(args.t, args.b, args.time)
-
-			trade(Stock, model)
+			trade(Stock, User, model)
 		
 		elif args.command == 'charge':
 			charge()

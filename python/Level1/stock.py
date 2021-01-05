@@ -1,14 +1,16 @@
-from pathos.multiprocessing import ProcessingPool as Pool
-import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-BACKTEST = 'data/backTest/'
+import pathos
+from python.Level1.Level2.predict import find_gain
 
-class Stock:
+BACKTEST = 'data/backTest/'
+ACTUALLY_TRADE = False
+
+class Stock():
 	_NUMBARS = None
 	_model = None
 	_time_frame = None
 	_loss_percent = .01
 	_stocks = []
+	_main_api = None
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
@@ -23,10 +25,11 @@ class Stock:
 
 
 	@classmethod
-	def setup(cls, NUMBARS, model, time_frame):
+	def setup(cls, NUMBARS, model, time_frame, main_api):
 		cls._NUMBARS = NUMBARS
 		cls._model = model
 		cls._time_frame = time_frame
+		cls._main_api = main_api
 		
 
 
@@ -34,73 +37,22 @@ class Stock:
 	#								Individual								#
 	#-----------------------------------------------------------------------#
 		
-	def find_current_price(self, api):
-		barset = (api.get_barset(self.symbol,'1Min',limit=1))
+	def find_current_price(self):
+		barset = (Stock._main_api.get_barset(self.symbol,'1Min',limit=1))
 		symbol_bars = barset[self.symbol]
 		current_price = symbol_bars[0].c
 		return current_price
 
-	def find_prediction(self, api):
-		# Get bars
-		barset = (api.get_barset(self.symbol, Stock._time_frame, limit=Stock._NUMBARS))
-		# Get symbol's bars
-		symbol_bars = barset[self.symbol]
-
-		# Convert to list
-		dataSet = []
-
-		for barNum in symbol_bars:
-			bar = []
-			bar.append(barNum.o)
-			bar.append(barNum.c)
-			bar.append(barNum.h)
-			bar.append(barNum.l)
-			bar.append(barNum.v)
-			dataSet.append(bar)
-			
-		  
-		# Convert to numpy array
-		npDataSet = np.array(dataSet)
-		reshapedSet = np.reshape(npDataSet, (1, Stock._NUMBARS, 5))
-		
-		# Normalize Data
-		sc = MinMaxScaler(feature_range=(0,1))
-		normalized = np.empty(shape=(1, Stock._NUMBARS, 5)) 
-		normalized[0] = sc.fit_transform(reshapedSet[0])
-		
-		# Predict Price
-		predicted_price = Stock._model.predict(normalized)
-		
-		
-		# Add 4 columns of 0 onto predictions so it can be fed back through sc
-		shaped_predictions = np.empty(shape = (1, 5))
-		for row in range(0, 1):
-			shaped_predictions[row, 0] = predicted_price[row, 0]
-		for col in range (1, 5):
-			shaped_predictions[row, col] = 0
-		
-		
-		# undo normalization
-		predicted_price = sc.inverse_transform(shaped_predictions)
-		return predicted_price[0][0]
-
-	def find_gain(self, api):
-			prediction = self.find_prediction(api)
-			current = self.find_current_price(api)
-			
-			gain = prediction/current
-			gain = round((gain -1) * 100, 3)
-			if gain < 0:
-				gain = 0
-			self.gain = gain
-			return gain
+	
+	def set_gain(self, gain):
+		self.gain = gain
 
 	
 	#-----------------------------------------------------------------------#
 	#									Trading								#
 	#-----------------------------------------------------------------------#
 	
-	ACTUALLY_TRADE = False
+	
 
 	def buy(self, api, quantity):
 		print ('Buying ' + self.symbol + ' QTY: ' + str(quantity))
@@ -148,8 +100,8 @@ class Stock:
 	# diversified_stocks is dict with best stocks and their buy ratio
 	# second_best_stocks is num_best_stocks next best stocks
 	@classmethod
-	def find_diversity(cls, num_best_stocks, api):
-		best_stocks, all_best_stocks = Stock._find_best(num_best_stocks, api)
+	def find_diversity(cls, num_best_stocks):
+		best_stocks, all_best_stocks = Stock._find_best(num_best_stocks)
 		gain_sum = 0
 		for stock in best_stocks:
 			gain_sum += stock.gain
@@ -164,30 +116,30 @@ class Stock:
 			diversified_stocks.append(this_stock)
 		return diversified_stocks, all_best_stocks
 	
-	@classmethod
-	def _find_gain(cls, stock, api):
-		stock.find_gain(api)
-		return 0
+
 		
 	# returns tuple of two lists
 	# list[0] = num_best_stocks of the highest gains. If num_best_stocks is 5, list[0] is the top 5 stocks
 	# list[1] = next numb_best_stocks of the next highest gains. If num_best_stocks is 5, list[1] is the next top 5 stocks
 	@classmethod
-	def _find_best(cls, num_best_stocks, api): 
+	def _find_best(cls, num_best_stocks): 
 				
 		def get_gain(stock):
 				return stock.gain
 		
 		# find gain for every stock
-		# use multiprocessing here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+		# use multiprocessing to speed up
+		pool = pathos.helpers.mp.Pool(pathos.helpers.mp.cpu_count())
+		stocks_with_gains = pool.starmap(find_gain, [(stock, cls._main_api, cls._time_frame, cls._NUMBARS) for stock in cls.get_stock_list()])
+		pool.close()
+		'''
 		for stock in cls.get_stock_list():
-			cls._find_gain(stock, api)
-
-
+			cls._find_gain(stock)
+		'''
 
 		# Add best gains to max_stocks
 		max_stocks = []
-		for stock in Stock._stocks:
+		for stock in stocks_with_gains:
 				if len(max_stocks) < num_best_stocks * 2:
 					max_stocks.append(stock)
 				elif stock.gain > max_stocks[-1].gain:

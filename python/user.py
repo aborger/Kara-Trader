@@ -171,7 +171,7 @@ class User:
 			cheapest_price = 999999
 			for stock_dict in diversified_stocks:
 				try:
-					price = stock_dict['stock_object'].find_current_price(cls.get_api())
+					price = stock_dict['stock_object'].find_current_price()
 				except:
 					raise
 				else:
@@ -184,7 +184,7 @@ class User:
 				print('Diversified_stocks:')
 			for stock_dict in diversified_stocks:
 				max_money_for_stock = buying_power * stock_dict['buy_ratio']
-				current = stock_dict['stock_object'].find_current_price(cls.get_api())
+				current = stock_dict['stock_object'].find_current_price()
 				quantity = int(max_money_for_stock / current)
 				
 				if DEBUG:
@@ -215,7 +215,7 @@ class User:
 			while still_buying: # stops after no more stocks are bought
 				still_buying = False
 				for stock in best_stocks:
-					current = stock.find_current_price(cls.get_api())
+					current = stock.find_current_price()
 					quantity = int(buying_power / current)
 					if DEBUG:
 						print('------------------------------------------')
