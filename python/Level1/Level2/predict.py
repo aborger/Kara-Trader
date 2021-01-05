@@ -1,10 +1,10 @@
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-from tensorflow import keras
+
 	
 
-def find_gain(stock, api, time_frame, NUMBARS):
-    model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+def find_gain(stock, api, model, time_frame, NUMBARS):
+    
     print('Predicting gain for ' + stock.symbol)
     # Get bars
     barset = (api.get_barset(stock.symbol, time_frame, limit=NUMBARS))

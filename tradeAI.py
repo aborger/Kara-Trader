@@ -89,7 +89,7 @@ def trade(Stock, User, model):
 	from time import sleep
 
 
-	if User.get_api().get_clock().is_open:
+	if True: #User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		# Sell any open positions
 		User.users_sell_all()

@@ -1,5 +1,6 @@
 import pathos
 from python.Level1.Level2.predict import find_gain
+from tensorflow import keras
 
 BACKTEST = 'data/backTest/'
 ACTUALLY_TRADE = False
@@ -137,8 +138,9 @@ class Stock():
 	
 		else:
 			stocks_with_gains = []
+			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 			for stock in cls.get_stock_list():
-				stocks_with_gains.append(find_gain(stock)) 
+				stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS)) 
 
 
 
