@@ -34,6 +34,7 @@ SAMPLE_RANGE_NAME = 'Form Responses 1'
 
 class User:
 	_users = []
+	_boosters = []
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
@@ -72,7 +73,9 @@ class User:
 		# adds each user to user list
 		for user in user_data:
 			new_user = User(user, tradeapi)
-			if is_paper:
+			if new_user.info['email'] == 'boost':
+				cls._boosters.append(new_user)
+			elif is_paper:
 				if new_user.info['email'] == 'kara':
 					cls._users.append(new_user)
 			else:
@@ -373,6 +376,15 @@ class User:
 		apis = []
 		for user in cls._users:
 			apis.append(user.api)
+		return apis
+
+	@classmethod
+	def get_boosters(cls):
+		apis = []
+		for user in cls._users:
+			apis.append(user.api)
+		for booster in cls._boosters:
+			apis.append(booster.api)
 		return apis
 		
 	@classmethod
