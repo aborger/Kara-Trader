@@ -4,7 +4,6 @@ from tensorflow import keras
 
 BACKTEST = 'data/backTest/'
 ACTUALLY_TRADE = False
-USE_MULTIPROCESSING = False
 
 class Stock():
 	_NUMBARS = None
@@ -129,18 +128,10 @@ class Stock():
 				return stock.gain
 		
 		# find gain for every stock
-
-		if USE_MULTIPROCESSING:
-			# use multiprocessing to speed up
-			pool = pathos.helpers.mp.Pool(pathos.helpers.mp.cpu_count())
-			stocks_with_gains = pool.starmap(find_gain, [(stock, cls._main_api, cls._time_frame, cls._NUMBARS) for stock in cls.get_stock_list()])
-			pool.close()
-	
-		else:
-			stocks_with_gains = []
-			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
-			for stock in cls.get_stock_list():
-				stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS)) 
+		stocks_with_gains = []
+		model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+		for stock in cls.get_stock_list():
+			stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS)) 
 
 
 
