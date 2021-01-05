@@ -3,14 +3,19 @@ import time
 import os
 
 def buy():
-   print("Running AI...")
+   print("Buying...")
    os.system("sudo python3 tradeAI.py buy")
    return
    
 def trail():
-   print("Running AI...")
+   print("Trailing...")
    os.system("sudo python3 tradeAI.py trail")
    return
+   
+def charge():
+	print("Charging...")
+	os.system("sudo python3 tradeAI.py charge")
+	return
    
 def log():
    print("Running AI...")
@@ -18,7 +23,8 @@ def log():
    return
 
 schedule.every().day.at("13:00").do(buy)
-schedule.every().day.at("07:30").do(trail)
+schedule.every().day.at("14:00").do(charge)
+schedule.every().day.at("14:30").do(trail)
 #schedule.every().hour.do(log)
 
 while True:
