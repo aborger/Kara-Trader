@@ -120,7 +120,7 @@ def import_data(is_test, is_backtest, time_frame):
 		User.update_users(is_test, tradeapi)
 	else:
 		from python.user import User
-		User.update_users(is_test, tradeapi)
+		User.update_users(True, tradeapi)
 
 	# setup stocks
 	from python.Level1.stock import Stock

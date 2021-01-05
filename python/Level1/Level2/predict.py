@@ -61,6 +61,4 @@ def find_gain(stock, api, time_frame, NUMBARS):
     stock.set_gain(gain)
     return stock
 
-
-
 		

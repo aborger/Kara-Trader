@@ -3,10 +3,10 @@ from python.Level1.Level2.predict import find_gain
 
 BACKTEST = 'data/backTest/'
 ACTUALLY_TRADE = False
+USE_MULTIPROCESSING = False
 
 class Stock():
 	_NUMBARS = None
-	_model = None
 	_time_frame = None
 	_loss_percent = .01
 	_stocks = []
@@ -128,14 +128,17 @@ class Stock():
 				return stock.gain
 		
 		# find gain for every stock
-		# use multiprocessing to speed up
-		pool = pathos.helpers.mp.Pool(pathos.helpers.mp.cpu_count())
-		stocks_with_gains = pool.starmap(find_gain, [(stock, cls._main_api, cls._time_frame, cls._NUMBARS) for stock in cls.get_stock_list()])
-		pool.close()
-		'''
-		for stock in cls.get_stock_list():
-			cls._find_gain(stock)
-		'''
+
+		if USE_MULTIPROCESSING:
+			# use multiprocessing to speed up
+			pool = pathos.helpers.mp.Pool(pathos.helpers.mp.cpu_count())
+			stocks_with_gains = pool.starmap(find_gain, [(stock, cls._main_api, cls._time_frame, cls._NUMBARS) for stock in cls.get_stock_list()])
+			pool.close()
+	
+		else:
+			stocks_with_gains = find_gain(stock) for stock in cls.get_stock_list()
+
+
 
 		# Add best gains to max_stocks
 		max_stocks = []
