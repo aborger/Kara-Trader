@@ -139,7 +139,7 @@ def import_data(is_test, is_backtest, time_frame):
 	import alpaca_trade_api as theapi
 	assets = User.get_api().list_assets(status='active')
 	for asset in assets:
-		this_stock = Stock(asset.symbol)
+		this_stock = Stock(asset.symbol, NUMBARS, model)
 	
 	
 	

@@ -6,12 +6,12 @@ class Stock:
 	_period = 0
 	_loss_percent = .01
 	
-	def __init__(self, symbol):
+	def __init__(self, symbol, NUMBARS, model):
 		self.symbol = symbol
 		self._stocks.append(self)
 		
-		self.frames = [Time_frame('1Min', symbol), Time_frame('5Min', symbol),
-						Time_frame('15Min', symbol), Time_frame('1D', symbol)]
+		self.frames = [Time_frame('1Min', symbol, NUMBARS, model), Time_frame('5Min', symbol, NUMBARS, model),
+						Time_frame('15Min', symbol, NUMBARS, model), Time_frame('1D', symbol, NUMBARS, model)]
 						
 	def setup(NUMBARS, model, period):
 		Stock._stocks = []
@@ -52,17 +52,17 @@ class Stock:
 			stocks.append(this_stock)
 		return stocks
 	
-	def _find_gain(stock, api):
+	@classmethod
+	def _find_gain(cls, stock, api):
 		print(stock.symbol)
-		try:
-			stock.frames[Stock._period].get_gain(api)
-			print('done')
-			return 0
-		except:
-			return 0
+		stock.frames[Stock._period].get_gain(api)
+		print('done')
+		return 0
+
 		
 	# returns num_stocks best stocks
-	def _highest_gain(num_stocks, api_list): 
+	@classmethod
+	def _highest_gain(cls, num_stocks, api_list): 
 				
 		def get_gain(stock):
 				return stock.frames[Stock._period].gain
@@ -72,8 +72,10 @@ class Stock:
 			
 		print('calculating...')
 		# find gain for every stock
-		Pool().map(Stock._find_gain, Stock._stocks, api_list)
-		
+		pool = Pool()
+		done = pool.map(Stock._find_gain, Stock._stocks, api_list)
+
+		print(done)
 		
 		# Add best gains to max_stocks
 		# Currently only using 5 max gains

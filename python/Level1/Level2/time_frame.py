@@ -7,13 +7,16 @@ class Time_frame:
     _NUMBARS = 0
     _model = 0
     # time_frame can be 1Min, 5Min, 15Min, or 1D
-    def __init__(self, frame, symbol):
+    def __init__(self, frame, symbol, NUMBARS, model):
         self.frame_name = frame
         self.symbol = symbol
+        Time_frame._NUMBARS = NUMBARS
+        Time_frame._model = model
         self._frames.append(self)
     
 
     def setup(NUMBARS, model):
+        print('NUMBARS: ' + str(NUMBARS))
         Time_frame._NUMBARS = NUMBARS
         Time_frame._model = model
         
@@ -24,6 +27,7 @@ class Time_frame:
         return current_price
     
     def get_gain(self, api):
+        print('NUMBARS: ' + str(Time_frame._NUMBARS))
         print('predicting using account with ' + str(api.get_account().equity) + ' dollars')
         prediction = self.get_prediction(api)
         print('prediction done.')
@@ -59,6 +63,7 @@ class Time_frame:
           
         # Convert to numpy array
         npDataSet = np.array(dataSet)
+        print('NUMBARS: ' + str(Time_frame._NUMBARS))
         reshapedSet = np.reshape(npDataSet, (1, Time_frame._NUMBARS, 5))
         
         # Normalize Data
