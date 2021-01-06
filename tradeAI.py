@@ -77,10 +77,7 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-    if User.get_api().get_clock().is_open:
-        User.users_trailing()
-    else:
-        print('Stock market is not open today.')
+    User.users_trailing()
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
@@ -97,7 +94,7 @@ def trade(Stock, User, model):
 		print('Calculating best stocks...')
 
 		start_time = time.time()
-		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS)
+		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_boosters())
 		end_time = time.time()
 
 		print(f"Time to predict is {end_time - start_time}")
@@ -120,7 +117,7 @@ def import_data(is_test, is_backtest, time_frame):
 		User.update_users(is_test, tradeapi)
 	else:
 		from python.user import User
-		User.update_users(True, tradeapi)
+		User.update_users(is_test, tradeapi)
 
 	# setup stocks
 	from python.Level1.stock import Stock
