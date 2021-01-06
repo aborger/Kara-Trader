@@ -3,7 +3,7 @@ from python.Level1.Level2.predict import find_gain
 from tensorflow import keras
 
 BACKTEST = 'data/backTest/'
-ACTUALLY_TRADE = False
+ACTUALLY_TRADE = True
 USE_MULTIPROCESSING = False
 
 class Stock():
@@ -52,43 +52,49 @@ class Stock():
 	#-----------------------------------------------------------------------#
 	#									Trading								#
 	#-----------------------------------------------------------------------#
-	
-	
-
 	def buy(self, api, quantity):
 		print ('Buying ' + self.symbol + ' QTY: ' + str(quantity))
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='buy',
-				type='market',
-				time_in_force='gtc')
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='buy',
+					type='market',
+					time_in_force='gtc')
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 
 	def sell(self, api, quantity):
 		print ('Sold ' + self.symbol)
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='sell',
-				type='market',
-				time_in_force='gtc')
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='sell',
+					type='market',
+					time_in_force='gtc')
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 		
 	def trailing_stop(self, api, quantity, percent):
 		print('Applying trailing stop for ' + self.symbol)
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='sell',
-				type='trailing_stop',
-				time_in_force='gtc',
-				trail_percent=percent)
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='sell',
+					type='trailing_stop',
+					time_in_force='gtc',
+					trail_percent=percent)
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 		
