@@ -77,10 +77,7 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-    if User.get_api().get_clock().is_open:
-        User.users_trailing()
-    else:
-        print('Stock market is not open today.')
+    User.users_trailing()
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5

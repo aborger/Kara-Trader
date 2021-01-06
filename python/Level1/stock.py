@@ -1,9 +1,8 @@
 import pathos
-from python.Level1.Level2.predict import find_gains
-
 
 BACKTEST = 'data/backTest/'
-ACTUALLY_TRADE = False
+ACTUALLY_TRADE = True
+USE_MULTIPROCESSING = False
 
 class Stock():
 	_NUMBARS = None
@@ -51,43 +50,49 @@ class Stock():
 	#-----------------------------------------------------------------------#
 	#									Trading								#
 	#-----------------------------------------------------------------------#
-	
-	
-
 	def buy(self, api, quantity):
 		print ('Buying ' + self.symbol + ' QTY: ' + str(quantity))
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='buy',
-				type='market',
-				time_in_force='gtc')
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='buy',
+					type='market',
+					time_in_force='gtc')
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 
 	def sell(self, api, quantity):
 		print ('Sold ' + self.symbol)
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='sell',
-				type='market',
-				time_in_force='gtc')
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='sell',
+					type='market',
+					time_in_force='gtc')
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 		
 	def trailing_stop(self, api, quantity, percent):
 		print('Applying trailing stop for ' + self.symbol)
 		if ACTUALLY_TRADE:
-			api.submit_order(
-				symbol=self.symbol,
-				qty=quantity,
-				side='sell',
-				type='trailing_stop',
-				time_in_force='gtc',
-				trail_percent=percent)
+			try:
+				api.submit_order(
+					symbol=self.symbol,
+					qty=quantity,
+					side='sell',
+					type='trailing_stop',
+					time_in_force='gtc',
+					trail_percent=percent)
+			except Exception as exc:
+				print(exc)
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 		
@@ -128,45 +133,54 @@ class Stock():
 				return stock.gain
 		
 		# find gain for every stock
-		# use multiprocessing to speed up
-		
-		# find number of workers
-		num_workers = None
-		if pathos.helpers.mp.cpu_count() < len(boosters):
-			num_workers = pathos.helpers.mp.cpu_count()
-			print('Get more CPUs!')
-		else:
-			num_workers = len(boosters)
-			print('Get more boosters!')
-
-		print('num workers: ' + str(num_workers))
-
-		# divide stocks per worker
-		stocks_per_worker = int(len(cls._stocks) / num_workers)
-		left_over = len(cls._stocks) % num_workers
-
-		workers = []
-		for worker in range(0, num_workers):
-			min_stock = worker * stocks_per_worker
-			max_stock = (worker + 1) * stocks_per_worker
-			if worker == num_workers - 1:
-				max_stock += left_over
-			worker_stocks = cls._stocks[min_stock : max_stock]
-			worker_api = boosters[worker]
-			worker_dict = dict(api = worker_api, stocks = worker_stocks)
-			workers.append(worker_dict)
-
-		
-
-
-		pool = pathos.helpers.mp.Pool(num_workers)
-		predicted_stocks = pool.starmap(find_gains, [(worker, cls._time_frame, cls._NUMBARS) for worker in workers])
-		pool.close()
-	
-
 		stocks_with_gains = []
-		for group in predicted_stocks:
-			stocks_with_gains = stocks_with_gains + group
+		if USE_MULTIPROCESSING:
+			from python.Level1.Level2.predict import find_gains
+			# use multiprocessing to speed up
+			
+			# find number of workers
+			num_workers = None
+			if pathos.helpers.mp.cpu_count() < len(boosters):
+				num_workers = pathos.helpers.mp.cpu_count()
+				print('Get more CPUs!')
+			else:
+				num_workers = len(boosters)
+				print('Get more boosters!')
+
+			print('num workers: ' + str(num_workers))
+
+			# divide stocks per worker
+			stocks_per_worker = int(len(cls._stocks) / num_workers)
+			left_over = len(cls._stocks) % num_workers
+
+			workers = []
+			for worker in range(0, num_workers):
+				min_stock = worker * stocks_per_worker
+				max_stock = (worker + 1) * stocks_per_worker
+				if worker == num_workers - 1:
+					max_stock += left_over
+				worker_stocks = cls._stocks[min_stock : max_stock]
+				worker_api = boosters[worker]
+				worker_dict = dict(api = worker_api, stocks = worker_stocks)
+				workers.append(worker_dict)
+
+			
+
+
+			pool = pathos.helpers.mp.Pool(num_workers)
+			predicted_stocks = pool.starmap(find_gains, [(worker, cls._time_frame, cls._NUMBARS) for worker in workers])
+			pool.close()
+		
+			for group in predicted_stocks:
+				stocks_with_gains = stocks_with_gains + group
+
+		else:
+			from python.Level1.Level2.predict import find_gain
+			from tensorflow import keras
+
+			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+			for stock in cls.get_stock_list():
+				stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS))
 
 		# Add best gains to max_stocks
 		max_stocks = []
