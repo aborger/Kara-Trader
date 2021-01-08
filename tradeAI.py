@@ -13,6 +13,7 @@ TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
 LOGDIR = 'data/logs/'
 STOCKDIR = '../Stock_data/'
+INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 
 
 #===================================================================#
@@ -79,6 +80,10 @@ def quick_sell():
 def trailing(is_paper):
     User.users_trailing()
 
+def upload():
+	import python.update_wp as wp
+	wp.upload(INDICATOR_DATA_FILE)
+
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
 	#from python.stock import Stock
@@ -101,6 +106,8 @@ def trade(Stock, User, model):
 
 		# Buy the best stocks
 		User.users_buy(diversified_stocks, best_stocks)
+
+		upload()
 	else:
 		print('Stock market is not open today.')
 		
@@ -121,7 +128,7 @@ def import_data(is_test, is_backtest, time_frame):
 
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame, User.get_api())
+	Stock.setup(NUMBARS, model, time_frame, User.get_api(), INDICATOR_DATA_FILE)
 
 
 	# Load S&P500
@@ -166,7 +173,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read', 'charge'")
+						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', upload")
 	
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -223,6 +230,8 @@ if __name__ == '__main__':
 			
 		elif args.command == 'read':
 			read()
+		elif args.command == 'upload':
+			upload()
 		else:
-			raise InputError("Command must be either 'train', 'run', or 'view'")
+			raise InputError("Command must be either 'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 

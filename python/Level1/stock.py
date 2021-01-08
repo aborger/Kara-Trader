@@ -1,7 +1,7 @@
 import pathos
 
 BACKTEST = 'data/backTest/'
-ACTUALLY_TRADE = True
+ACTUALLY_TRADE = False
 USE_MULTIPROCESSING = False
 
 class Stock():
@@ -10,12 +10,16 @@ class Stock():
 	_loss_percent = .01
 	_stocks = []
 	_main_api = None
+	_INDICATOR_DATA_FILE = None
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
 	#-----------------------------------------------------------------------#
 	def __init__(self, ticker):
 		self.gain = None
+		self.real_gain = None
+		self.predicted_price = None
+		self.current_price = None
 		if isinstance(ticker, str): # its a regular string
 			self.symbol = ticker
 			Stock._stocks.append(self)
@@ -24,11 +28,13 @@ class Stock():
 
 
 	@classmethod
-	def setup(cls, NUMBARS, model, time_frame, main_api):
+	def setup(cls, NUMBARS, model, time_frame, main_api, INDICATOR_DATA_FILE):
 		cls._NUMBARS = NUMBARS
 		cls._model = model
 		cls._time_frame = time_frame
 		cls._main_api = main_api
+		cls._INDICATOR_DATA_FILE = INDICATOR_DATA_FILE
+
 		
 
 
@@ -43,8 +49,12 @@ class Stock():
 		return current_price
 
 	
-	def set_gain(self, gain):
+	def set_stats(self, gain, real_gain, predicted, current):
 		self.gain = gain
+		self.real_gain = real_gain
+		self.predicted_price = predicted
+		self.current_price = current
+
 
 	
 	#-----------------------------------------------------------------------#
@@ -132,6 +142,10 @@ class Stock():
 		def get_gain(stock):
 				return stock.gain
 		
+		
+
+		
+
 		# find gain for every stock
 		stocks_with_gains = []
 		if USE_MULTIPROCESSING:
@@ -180,7 +194,21 @@ class Stock():
 
 			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 			for stock in cls.get_stock_list():
-				stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS))
+				try:
+					stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS))
+				except Exception as exc:
+					print(exc)
+
+		# Prepare to record data
+		log = open(cls._INDICATOR_DATA_FILE, 'w')	
+		log.write('Stock, Predicted Gain, Predicted Price, Price\n')
+		log.close()
+
+		# Record data
+		log = open(cls._INDICATOR_DATA_FILE, 'a')
+		for stock in stocks_with_gains:	
+			log.write(stock.symbol + ', ' + str(stock.real_gain) + ', ' + str(stock.predicted_price) + ', ' + str(stock.current_price) + '\n')
+		log.close()
 
 		# Add best gains to max_stocks
 		max_stocks = []
