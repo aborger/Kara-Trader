@@ -5,9 +5,18 @@
 # Kara-Trader
 [![Build Status](https://travis-ci.com/aborger/AItrader.svg?branch=master)](https://travis-ci.com/aborger/AItrader)
 
-Kara is an artificial intelligence that is capable of predicting stock prices. Currently it uses the past 10 bars of data (Open, Close, High, Low, Volume) to predict the next price. It calculates the percent gain of a list of stocks (Currently uses the S&P 500) and diversifies amongst the top 5. Diversification is accomplished by calculating a ratio of how funds should be split amongst the top stocks. The amount of funds distributed to a stock is proportional to the gain percentage they are predicted to accomplish. The stocks are bought through the [Alpaca](https://alpaca.markets/) broker. A trailing stop is then placed on the position. The ratio only needs to be calculated once because every user's buying power can be multiplied by the ratio to calculate how many shares of each stock to buy. While some trailing stops may trigger early and the predictions may not be 100% correct, they allow for enough profit enough of the time to offer a considerable profit.
+Kara is an artificial intelligence that is capable of predicting stock prices. Currently it uses the past 10 bars of data (Open, Close, High, Low, Volume) to predict the next price. These predictions are uploaded to the [Kara Trader Website](https://www.karatrader.com) as part of the Kara Indicator system.
 
-Checkout the [Kara Trader](https://www.karatrader.com) website for more information!
+<h3 align="center">Kara Predictions</h3>
+<p align="center">
+  <img src="https://www.karatrader.com/wp-content/uploads/2021/01/kara_indicator_table.png" alt="Kara Performance" width="600">
+</p>
+
+
+
+
+It calculates the percent gain of a list of stocks (Currently uses the S&P 500) and diversifies amongst the top 5. Diversification is accomplished by calculating a ratio of how funds should be split amongst the top stocks. The amount of funds distributed to a stock is proportional to the gain percentage they are predicted to accomplish. The stocks are bought through the [Alpaca](https://alpaca.markets/) broker. A trailing stop is then placed on the position. The ratio only needs to be calculated once because every user's buying power can be multiplied by the ratio to calculate how many shares of each stock to buy. While some trailing stops may trigger early and the predictions may not be 100% correct, they allow for enough profit enough of the time to offer a considerable profit.
+
 
 ## Performance
 
@@ -38,3 +47,9 @@ This model is a great demonstration of the power of AI as this algorithm only bu
 
 #### Progress:
 So far the second version is coming along great! The system has been built and training has begun. The only issues are mostly due to speed. The entire process is being ran on a raspberry pi 4 which has 4 cores and doesn't even have a GPU. Even with those limitations it takes about 2 minutes to produce an action. However, having the option to buy every 2 minutes is significantly better than only being able to buy once a day.
+
+
+Checkout the [Kara Trader](https://www.karatrader.com) website for more information!
+
+
+Note: I am currently modeling a business around Kara Trader. This repository is public to allow viewing of technique, methods, and skills used. The program may still function correctly, but key features have been left out so your experience will not be the same as the functional program.
