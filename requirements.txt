@@ -8,3 +8,4 @@ alpaca-trade-api==0.50.1
 lxml==4.5.2
 google-api-python-client
 stripe
+python-wordpress-xmlrpc
