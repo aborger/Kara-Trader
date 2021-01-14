@@ -9,3 +9,4 @@ lxml==4.5.2
 google-api-python-client
 stripe
 h5py==2.10.0
+pathos==0.2.7
