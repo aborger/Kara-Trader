@@ -2,6 +2,18 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from tensorflow import keras
 
+
+def normal_round(num, ndigits=0):
+    """
+    Rounds a float to the specified number of decimal places.
+    num: the value to round
+    ndigits: the number of digits to round to
+    """
+    if ndigits == 0:
+        return int(num + 0.5)
+    else:
+        digit_value = 10 ** ndigits
+        return int(num * digit_value + 0.5) / digit_value
 	
 def find_gain(stock, api, model, time_frame, NUMBARS):
     print('Predicting gain for ' + stock.symbol)
@@ -53,11 +65,17 @@ def find_gain(stock, api, model, time_frame, NUMBARS):
     current_price = symbol_bars[0].c
 
         
-    gain = predicted_price/current_price
-    gain = round((gain -1) * 100, 3)
+    real_gain = predicted_price/current_price
+    gain = normal_round((real_gain -1) * 100, 3)
+    real_gain = gain
+    predicted_price = normal_round(predicted_price, 2)
+    current_price = normal_round(current_price, 2)
     if gain < 0:
         gain = 0
-    stock.set_gain(gain)
+
+    
+    
+    stock.set_stats(gain, real_gain, predicted_price, current_price)
     return stock
 
 def find_gains(worker, time_frame, NUMBARS):

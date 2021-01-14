@@ -13,6 +13,7 @@ TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
 LOGDIR = 'data/logs/'
 STOCKDIR = '../Stock_data/'
+INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 
 
 #===================================================================#
@@ -39,31 +40,7 @@ def test():
 	User.get_stats()
 	
 def charge():
-    import stripe
-    from time import time
-    TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
-    LIVE_KEY = "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"
-    stripe.api_key = LIVE_KEY
-
-    for user in User.get_User():
-        '''
-        if user.info["email"] == 'test':
-            stripe.SubscriptionItem.create_usage_record(
-				"si_IQaqXjwSodgl02",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
-    
-        elif user.info["email"] == 'aborger@nnu.edu':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IQbjimY9WtxZbl",
-				quantity = int(float(user.api.get_account().equity) * 100),
-                timestamp=int(time()))
-        '''
-        if user.info["email"] == 'davidgoretoy123@gmail.com':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IfslYjzpuV2Bde",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
+    User.charge_users()
 
 def log():
 	User.log(LOGDIR)
@@ -78,6 +55,10 @@ def quick_sell():
 	
 def trailing(is_paper):
     User.users_trailing()
+
+def upload():
+	import python.update_wp as wp
+	wp.upload(INDICATOR_DATA_FILE)
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
@@ -101,6 +82,8 @@ def trade(Stock, User, model):
 
 		# Buy the best stocks
 		User.users_buy(diversified_stocks, best_stocks)
+
+		upload()
 	else:
 		print('Stock market is not open today.')
 		
@@ -121,7 +104,7 @@ def import_data(is_test, is_backtest, time_frame):
 
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame, User.get_api())
+	Stock.setup(NUMBARS, model, time_frame, User.get_api(), INDICATOR_DATA_FILE)
 
 
 	# Load S&P500
@@ -166,7 +149,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read', 'charge'")
+						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', upload")
 	
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -223,6 +206,8 @@ if __name__ == '__main__':
 			
 		elif args.command == 'read':
 			read()
+		elif args.command == 'upload':
+			upload()
 		else:
-			raise InputError("Command must be either 'train', 'run', or 'view'")
+			raise InputError("Command must be either 'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 
