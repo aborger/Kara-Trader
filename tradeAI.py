@@ -40,31 +40,7 @@ def test():
 	User.get_stats()
 	
 def charge():
-    import stripe
-    from time import time
-    TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
-    LIVE_KEY = "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"
-    stripe.api_key = LIVE_KEY
-
-    for user in User.get_User():
-        '''
-        if user.info["email"] == 'test':
-            stripe.SubscriptionItem.create_usage_record(
-				"si_IQaqXjwSodgl02",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
-    
-        elif user.info["email"] == 'aborger@nnu.edu':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IQbjimY9WtxZbl",
-				quantity = int(float(user.api.get_account().equity) * 100),
-                timestamp=int(time()))
-        '''
-        if user.info["email"] == 'davidgoretoy123@gmail.com':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IfslYjzpuV2Bde",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
+    User.charge_users()
 
 def log():
 	User.log(LOGDIR)
