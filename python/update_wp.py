@@ -7,6 +7,7 @@ from python.Level1.Level2.predict import normal_round
 
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 PORTFOLIO_HISTORY_FILE = 'data/portfolio_history/aborger@nnu.edu.csv'
+STOCK_HISTORY_FILE = 'data/stock_history/SPY.csv'
 
 
 def upload_indicator():
@@ -54,29 +55,50 @@ def upload_indicator():
 def upload_performance():
     # Uses chart from canvasjs.com
     # Documentation: https://canvasjs.com/docs/charts/basics-of-creating-html5-chart/
-    data = pd.read_csv(PORTFOLIO_HISTORY_FILE, sep=r'\s*,\s*', engine='python')
-    keys = data.keys()
-    np_data=data.to_numpy()
 
+    # collect kara data
+    kara_data = pd.read_csv(PORTFOLIO_HISTORY_FILE, sep=r'\s*,\s*', engine='python')
+    kara_np_data = kara_data.to_numpy()
+
+    # collect s&p data
+    sp_data = pd.read_csv(STOCK_HISTORY_FILE, sep=r'\s*,\s*', engine='python')
+    sp_np_data = sp_data.to_numpy()
+
+    num_shares = kara_np_data[0][1] / sp_np_data[0][1] # calculates number of spy shares to buy so both start of with same value
     # Convert to data into html line graph
-
-    
     string = '<head>'
     string += '<script type="text/javascript">'
     string += 'window.onload = function () {'
     string += 'var chart = new CanvasJS.Chart("chartContainer", {'
     string += 'title:{ text: "Kara $10,000 Account 1Y" },'
     string += 'axisY: { title: "Equity ($)", gridColor: "#B5B5B5" },'
-    string += 'data: [{ type: "line", color: "#3DA37B",'
-    string += 'dataPoints: ['
+    string += 'data: ['
 
-    # Data
-    for row in np_data:
+    # Kara Line
+    string += '{ type: "line", color: "#3DA37B", showInLegend: true, legendText: "Kara Origin", dataPoints: ['
+    # Kara Line Data
+
+    for row in kara_np_data:
         date = row[0].replace('-', ', ')
         string += '{ x: new Date(' + date + '), y: ' + str(row[1]) + ' },'
 
     string = string[:-1]
-    string += ']}]});'
+    string += ']},'
+    
+    # S&P Line
+    string += '{ type: "line", color: "#A9A9A9", showInLegend: true, legendText: "S&P 500", dataPoints: ['
+    # S&P Line Data
+    
+    for row in sp_np_data:
+        date = row[0][:10]
+        date = date.replace('-', ', ')
+        string += '{ x: new Date(' + date + '), y: ' + str(normal_round(row[1]*num_shares, 2)) + ' },'
+
+
+    string = string[:-1]
+    string += ']}'
+
+    string += ']});'
     string += 'chart.render();'
     string += '}'
     string += '</script>'
@@ -86,9 +108,10 @@ def upload_performance():
     string += '<div id="chartContainer" style="height: 300px; width: 100%;"></div>'
     string += '</body>'
 
+
+
     client = Client('http://karatrader.com/xmlrpc.php', 'karatrader', 'N5xXLsSZzaD3pz7l')
 
-    
     page = WordPressPage()
     page.title = 'Kara Origin'
     page.content = string

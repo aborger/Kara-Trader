@@ -58,8 +58,9 @@ def trailing(is_paper):
     User.users_trailing()
 
 def upload():
-	User.log_portfolio_history()
 	import python.update_wp as wp
+	print('Uploading...')
+	User.log_portfolio_history()
 	wp.upload_performance()
 	wp.upload_indicator()
 

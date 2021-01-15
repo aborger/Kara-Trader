@@ -2,6 +2,7 @@ import pathos
 
 BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
+STOCK_DATA_DIR = 'data/stock_history/'
 ACTUALLY_TRADE = False
 
 class Stock():
@@ -221,6 +222,28 @@ class Stock():
 		max_stocks.sort(reverse=True, key=get_gain)
 		best = max_stocks[0:num_best_stocks]
 		return best, max_stocks
+
+
+	#-----------------------------------------------------------------------#
+	#									Logging								#
+	#-----------------------------------------------------------------------#
+
+	@classmethod
+	def log_bars(cls, symbol, num_bars):
+			barset = (Stock._main_api.get_barset(symbol, Stock._time_frame, limit=num_bars))
+			symbol_bars = barset[symbol]
+
+			# Prepare to record data
+			log = open(STOCK_DATA_DIR + symbol + '.csv', 'w')	
+			log.write('Timestamp, Value\n')
+			
+			# Record data
+			for bar in range(0, num_bars):
+				log.write(str(symbol_bars[bar].t) + ', ' + str(symbol_bars[bar].c) + '\n')
+
+			log.close()
+
+
 
 	#-----------------------------------------------------------------------#
 	#									Getters								#

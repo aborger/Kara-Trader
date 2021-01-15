@@ -421,19 +421,24 @@ class User:
 
 	@classmethod
 	def log_portfolio_history(cls):
+		num_days = None
+
 		for user in cls._users:
 			history = user.api.get_portfolio_history(period = '1A')
+			num_days = len(history.timestamp)
 
 			# Prepare to record data
 			log = open(PORTFOLIO_HISTORY_DIR + user.info["email"] + '.csv', 'w')	
 			log.write('Timestamp, Equity\n')
 			
 			# Record data
-			for day in range(0, len(history.timestamp)):
+			for day in range(0, num_days):
 				daytime = time.strftime('%Y-%m-%d', time.localtime(history.timestamp[day]))
 				log.write(str(daytime) + ', ' + str(history.equity[day]) + '\n')
 
 			log.close()	
+
+		Stock.log_bars('SPY', num_days)
 
 	#-----------------------------------------------------------------------#
 	#									Getters								#
