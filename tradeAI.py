@@ -15,6 +15,8 @@ LOGDIR = 'data/logs/'
 STOCKDIR = '../Stock_data/'
 
 
+
+
 #===================================================================#
 #								Run Functions						#
 #===================================================================#
@@ -39,31 +41,7 @@ def test():
 	User.get_stats()
 	
 def charge():
-    import stripe
-    from time import time
-    TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
-    LIVE_KEY = "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"
-    stripe.api_key = LIVE_KEY
-
-    for user in User.get_User():
-        '''
-        if user.info["email"] == 'test':
-            stripe.SubscriptionItem.create_usage_record(
-				"si_IQaqXjwSodgl02",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
-    
-        elif user.info["email"] == 'aborger@nnu.edu':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IQbjimY9WtxZbl",
-				quantity = int(float(user.api.get_account().equity) * 100),
-                timestamp=int(time()))
-        '''
-        if user.info["email"] == 'davidgoretoy123@gmail.com':
-            stripe.SubscriptionItem.create_usage_record(
-                "si_IfslYjzpuV2Bde",
-				quantity = int(float(user.api.get_account().equity) * 100),
-				timestamp=int(time()))
+    User.charge_users()
 
 def log():
 	User.log(LOGDIR)
@@ -77,10 +55,13 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-    if User.get_api().get_clock().is_open:
-        User.users_trailing()
-    else:
-        print('Stock market is not open today.')
+    User.users_trailing()
+
+def upload():
+	User.log_portfolio_history()
+	import python.update_wp as wp
+	wp.upload_performance()
+	wp.upload_indicator()
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
@@ -97,13 +78,15 @@ def trade(Stock, User, model):
 		print('Calculating best stocks...')
 
 		start_time = time.time()
-		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS)
+		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_boosters())
 		end_time = time.time()
 
 		print(f"Time to predict is {end_time - start_time}")
 
 		# Buy the best stocks
 		User.users_buy(diversified_stocks, best_stocks)
+
+		upload()
 	else:
 		print('Stock market is not open today.')
 		
@@ -169,7 +152,7 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'trade', 'sell', 'test', 'trail', 'log', 'read', 'charge'")
+						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', upload")
 	
 	parser.add_argument("-t", action='store_true', required=False,
 						help='Include -t if this is a shortened test')
@@ -226,6 +209,8 @@ if __name__ == '__main__':
 			
 		elif args.command == 'read':
 			read()
+		elif args.command == 'upload':
+			upload()
 		else:
-			raise InputError("Command must be either 'train', 'run', or 'view'")
+			raise InputError("Command must be either 'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 

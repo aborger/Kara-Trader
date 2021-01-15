@@ -16,7 +16,10 @@ import pandas as pd
 import numpy as np
 
 import os
+import stripe
 import time
+
+PORTFOLIO_HISTORY_DIR = 'data/portfolio_history/'
 
 # If modifying these scopes, delete the file token.pickle.
 
@@ -34,6 +37,7 @@ SAMPLE_RANGE_NAME = 'Form Responses 1'
 
 class User:
 	_users = []
+	_boosters = []
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
@@ -41,6 +45,7 @@ class User:
 
 	def __init__(self, user_info, tradeapi):
 		self.info = user_info
+		self.sub_id = None
 		self.status = True
 		print('Loading api...')
 		
@@ -62,6 +67,8 @@ class User:
 			else:
 				print(self.info['email'] + ' is paper account')
 
+
+
 	@classmethod
 	def update_users(cls, is_paper, tradeapi):
 		print('Getting users...')
@@ -69,16 +76,67 @@ class User:
 		cls._users = []
 		# gets user data
 		user_data = cls._find_users()
+		# connects emails to their subscription item
+		sub_items = cls._update_stripe_accounts()
 		# adds each user to user list
 		for user in user_data:
 			new_user = User(user, tradeapi)
-			if is_paper:
-				if new_user.info['email'] == 'kara':
+			email = new_user.info['email']
+			if email == 'boost':
+				cls._boosters.append(new_user)
+			elif is_paper:
+				if email == 'kara':
 					cls._users.append(new_user)
 			else:
 				if new_user.status:
+					new_user.sub_id = sub_items.get(email, None)
 					cls._users.append(new_user)
+
+		
 				
+	@classmethod
+	def _update_stripe_accounts(cls):
+		TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
+		LIVE_KEY = "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"
+		OLD_PLAN_ID = "plan_IkqfDcEiqoUm3x"
+		NEW_PRICE_ID = "price_1HpjuaEZVv1Joaylrwju6DRR"
+		stripe.api_key = LIVE_KEY
+
+		
+		# Transfer any website subscriptions to new subscription plan
+		old_subscriptions = stripe.Subscription.list(price=OLD_PLAN_ID)
+		old_subs = old_subscriptions["data"]
+		for sub in old_subs:
+			customer_id = sub["customer"]
+			subscription_id = sub["id"]
+			stripe.Subscription.delete(subscription_id)
+			stripe.Subscription.create(customer=customer_id, items=[{"price": NEW_PRICE_ID},],)
+			print('New Customer ' + customer_id + 'has been transfered')
+		
+		# Create list to connect subscription items to emails
+		new_subscriptions = stripe.Subscription.list(price=NEW_PRICE_ID)
+		new_subs = new_subscriptions["data"]
+		customer_sub_ids = {}
+		for sub in new_subs:
+			customer_id = sub["customer"]
+			customer = stripe.Customer.retrieve(customer_id)
+			email = customer["email"]
+			sub_item_id = sub["items"]["data"][0]["id"]
+			
+			customer_sub_ids[email] = sub_item_id
+
+		return customer_sub_ids
+
+	@classmethod
+	def charge_users(cls):
+		for user in cls._users:
+			if user.sub_id is None:
+				print(user.info["email"] + " does not have a subscription!")
+			else:
+				stripe.SubscriptionItem.create_usage_record(
+					user.sub_id,
+					quantity = int(float(user.api.get_account().equity) * 100),
+					timestamp=int(time.time()))
 
 	@classmethod
 	def _find_users(cls):
@@ -122,6 +180,7 @@ class User:
 				users.append(user_dict)
 			return users
 
+	
 	#-----------------------------------------------------------------------#
 	#								Individual								#
 	#-----------------------------------------------------------------------#
@@ -360,6 +419,22 @@ class User:
 		#LOGDIR + self.info['email'] + '.csv'
 		graph(LOGDIR + '1main.csv')
 
+	@classmethod
+	def log_portfolio_history(cls):
+		for user in cls._users:
+			history = user.api.get_portfolio_history(period = '1A')
+
+			# Prepare to record data
+			log = open(PORTFOLIO_HISTORY_DIR + user.info["email"] + '.csv', 'w')	
+			log.write('Timestamp, Equity\n')
+			
+			# Record data
+			for day in range(0, len(history.timestamp)):
+				daytime = time.strftime('%Y-%m-%d', time.localtime(history.timestamp[day]))
+				log.write(str(daytime) + ', ' + str(history.equity[day]) + '\n')
+
+			log.close()	
+
 	#-----------------------------------------------------------------------#
 	#									Getters								#
 	#-----------------------------------------------------------------------#
@@ -373,6 +448,15 @@ class User:
 		apis = []
 		for user in cls._users:
 			apis.append(user.api)
+		return apis
+
+	@classmethod
+	def get_boosters(cls):
+		apis = []
+		for user in cls._users:
+			apis.append(user.api)
+		for booster in cls._boosters:
+			apis.append(booster.api)
 		return apis
 		
 	@classmethod
@@ -399,6 +483,9 @@ class User:
 		t = time.localtime()
 		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
 		return current_time
+
+	
+			
 	
 #-----------------------------------------------------------------------#
 #									BackTest							#
