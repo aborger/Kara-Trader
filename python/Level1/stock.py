@@ -1,6 +1,7 @@
 import pathos
 
 BACKTEST = 'data/backTest/'
+INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 ACTUALLY_TRADE = False
 USE_MULTIPROCESSING = False
 
@@ -10,7 +11,6 @@ class Stock():
 	_loss_percent = .01
 	_stocks = []
 	_main_api = None
-	_INDICATOR_DATA_FILE = None
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
@@ -28,12 +28,11 @@ class Stock():
 
 
 	@classmethod
-	def setup(cls, NUMBARS, model, time_frame, main_api, INDICATOR_DATA_FILE):
+	def setup(cls, NUMBARS, model, time_frame, main_api):
 		cls._NUMBARS = NUMBARS
 		cls._model = model
 		cls._time_frame = time_frame
 		cls._main_api = main_api
-		cls._INDICATOR_DATA_FILE = INDICATOR_DATA_FILE
 
 		
 
@@ -200,12 +199,12 @@ class Stock():
 					print(exc)
 
 		# Prepare to record data
-		log = open(cls._INDICATOR_DATA_FILE, 'w')	
+		log = open(INDICATOR_DATA_FILE, 'w')	
 		log.write('Stock, Predicted Gain, Predicted Price, Price\n')
 		log.close()
 
 		# Record data
-		log = open(cls._INDICATOR_DATA_FILE, 'a')
+		log = open(INDICATOR_DATA_FILE, 'a')
 		for stock in stocks_with_gains:	
 			log.write(stock.symbol + ', ' + str(stock.real_gain) + ', ' + str(stock.predicted_price) + ', ' + str(stock.current_price) + '\n')
 		log.close()

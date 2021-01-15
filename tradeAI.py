@@ -13,7 +13,8 @@ TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
 LOGDIR = 'data/logs/'
 STOCKDIR = '../Stock_data/'
-INDICATOR_DATA_FILE = 'data/indicator_data.csv'
+
+
 
 
 #===================================================================#
@@ -57,8 +58,10 @@ def trailing(is_paper):
     User.users_trailing()
 
 def upload():
+	User.log_portfolio_history()
 	import python.update_wp as wp
-	wp.upload(INDICATOR_DATA_FILE)
+	wp.upload_performance()
+	wp.upload_indicator()
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
@@ -104,7 +107,7 @@ def import_data(is_test, is_backtest, time_frame):
 
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame, User.get_api(), INDICATOR_DATA_FILE)
+	Stock.setup(NUMBARS, model, time_frame, User.get_api())
 
 
 	# Load S&P500

@@ -19,6 +19,8 @@ import os
 import stripe
 import time
 
+PORTFOLIO_HISTORY_DIR = 'data/portfolio_history/'
+
 # If modifying these scopes, delete the file token.pickle.
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
@@ -178,6 +180,7 @@ class User:
 				users.append(user_dict)
 			return users
 
+	
 	#-----------------------------------------------------------------------#
 	#								Individual								#
 	#-----------------------------------------------------------------------#
@@ -416,6 +419,22 @@ class User:
 		#LOGDIR + self.info['email'] + '.csv'
 		graph(LOGDIR + '1main.csv')
 
+	@classmethod
+	def log_portfolio_history(cls):
+		for user in cls._users:
+			history = user.api.get_portfolio_history(period = '1A')
+
+			# Prepare to record data
+			log = open(PORTFOLIO_HISTORY_DIR + user.info["email"] + '.csv', 'w')	
+			log.write('Timestamp, Equity\n')
+			
+			# Record data
+			for day in range(0, len(history.timestamp)):
+				daytime = time.strftime('%Y-%m-%d', time.localtime(history.timestamp[day]))
+				log.write(str(daytime) + ', ' + str(history.equity[day]) + '\n')
+
+			log.close()	
+
 	#-----------------------------------------------------------------------#
 	#									Getters								#
 	#-----------------------------------------------------------------------#
@@ -464,6 +483,9 @@ class User:
 		t = time.localtime()
 		current_time = time.strftime("%d/%m/%Y %H:%M:%S", t)
 		return current_time
+
+	
+			
 	
 #-----------------------------------------------------------------------#
 #									BackTest							#
