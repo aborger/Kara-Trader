@@ -21,6 +21,7 @@ import time
 
 PORTFOLIO_HISTORY_DIR = 'data/portfolio_history/'
 DEMO_USER_PATH = 'data/user_data/demoUsers.csv'
+STRIPE_DATA_PATH = '../Stripe_API.csv'
 
 # If modifying these scopes, delete the file token.pickle.
 
@@ -97,25 +98,23 @@ class User:
 				
 	@classmethod
 	def _update_stripe_accounts(cls):
-		TEST_KEY = "sk_test_51HLFZMEZVv1JoaylrbkPZTBcUTiq9QMbxeyRTYd4rncGS5NZFCEdhtEJftz8LpM7Mj7g8NXKEMQXEurCd2R0RR5y00r4KGsXAM"
-		LIVE_KEY = "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"
-		OLD_PLAN_ID = "plan_IkqfDcEiqoUm3x"
-		NEW_PRICE_ID = "price_1HpjuaEZVv1Joaylrwju6DRR"
-		stripe.api_key = LIVE_KEY
+		stripe_data = pd.read_csv(STRIPE_DATA_PATH, sep=r'\s*,\s*', engine='python')
+
+		stripe.api_key = stripe_data["Live Key"][0]
 
 		
 		# Transfer any website subscriptions to new subscription plan
-		old_subscriptions = stripe.Subscription.list(price=OLD_PLAN_ID)
+		old_subscriptions = stripe.Subscription.list(price=stripe_data["Old Plan"][0])
 		old_subs = old_subscriptions["data"]
 		for sub in old_subs:
 			customer_id = sub["customer"]
 			subscription_id = sub["id"]
 			stripe.Subscription.delete(subscription_id)
-			stripe.Subscription.create(customer=customer_id, items=[{"price": NEW_PRICE_ID},],)
+			stripe.Subscription.create(customer=customer_id, items=[{"price": stripe_data["New Price"][0]},],)
 			print('New Customer ' + customer_id + 'has been transfered')
 		
 		# Create list to connect subscription items to emails
-		new_subscriptions = stripe.Subscription.list(price=NEW_PRICE_ID)
+		new_subscriptions = stripe.Subscription.list(price=stripe_data["New Price"][0])
 		new_subs = new_subscriptions["data"]
 		customer_sub_ids = {}
 		for sub in new_subs:
