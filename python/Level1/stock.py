@@ -3,7 +3,8 @@ import pathos
 BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
-ACTUALLY_TRADE = False
+USE_MULTIPROCESSING = False
+ACTUALLY_TRADE = True
 
 class Stock():
 	_NUMBARS = None
@@ -191,10 +192,10 @@ class Stock():
 			from python.Level1.Level2.predict import find_gain
 			from tensorflow import keras
 
-			model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+			#model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 			for stock in cls.get_stock_list():
 				try:
-					stocks_with_gains.append(find_gain(stock, cls._main_api, model, cls._time_frame, cls._NUMBARS))
+					stocks_with_gains.append(find_gain(stock, cls._main_api, cls._model, cls._time_frame, cls._NUMBARS))
 				except Exception as exc:
 					print(exc)
 

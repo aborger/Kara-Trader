@@ -27,8 +27,13 @@ def update_repository():
    os.system("git pull")
    return
 
+def update_website():
+   print("Updating website...")
+   os.system("sudo python3 tradeAI.py upload")
+
 schedule.every().day.at("12:55").do(update_repository)
 schedule.every().day.at("13:00").do(buy)
+schedule.every().day.at("13:30").do(update_website)
 schedule.every().day.at("14:00").do(charge)
 schedule.every().day.at("14:30").do(trail)
 #schedule.every().hour.do(log)

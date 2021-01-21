@@ -20,6 +20,7 @@ import stripe
 import time
 
 PORTFOLIO_HISTORY_DIR = 'data/portfolio_history/'
+DEMO_USER_PATH = 'data/user_data/demoUsers.csv'
 
 # If modifying these scopes, delete the file token.pickle.
 
@@ -560,3 +561,65 @@ class backtestUser(User):
 			print(user.info['email'] + ' has gained ' + str(user.get_gain()) + '%')
 		
 		
+#-----------------------------------------------------------------------#
+#							Demonstration User							#
+#-----------------------------------------------------------------------#
+class DemonstrationUser(User):
+	def __init__(self, user_info, tradeapi):
+		self.info = user_info
+		self.sub_id = None
+		self.status = True
+		print('Loading api...')
+		
+		#try as live account
+		self.api = tradeapi.REST(key_id = self.info['keyID'],
+							secret_key = self.info['secret_key'],
+							base_url = 'https://api.alpaca.markets')
+		try:
+			self.api.get_account()
+		except tradeapi.rest.APIError:
+			self.api = tradeapi.REST(key_id = self.info['keyID'],
+						secret_key = self.info['secret_key'],
+						base_url = 'https://paper-api.alpaca.markets')
+			try:
+				self.api.get_account()
+			except:
+				print(self.info['email'] + ' does not work!')
+				self.status = False
+			else:
+				print(self.info['email'] + ' is paper account')
+
+	@classmethod
+	def update_users(cls, tradeapi):
+		print('Getting demonstration users...')
+		# reset user list
+		cls._users = []
+		# gets user data
+		users = []
+		if os.path.exists(DEMO_USER_PATH):
+			data = pd.read_csv(DEMO_USER_PATH, sep=r'\s*,\s*', engine='python')
+			data = data.to_numpy()
+			for user in data:
+				user_dict = dict(email=user[0], keyID=user[1], secret_key=user[2])
+				users.append(user_dict)
+		else:
+			import webbrowser
+			print("Please open a free alpaca paper trading account to use demonstration.")
+			webbrowser.open('https://app.alpaca.markets/signup')
+			keyID = input("Please enter your alpaca API Key ID: ")
+			secret_key = input("Please enter your alpaca Secret Key: ")
+
+			# Saving info to file
+			demofile = open(DEMO_USER_PATH, 'w')	
+			demofile.write('email, keyID, secret_key\n')
+			demofile.write('Demo user, ' + keyID + ', ' + secret_key + '\n')
+			demofile.close()
+
+			user_dict = dict(email='Demo user', keyID=keyID, secret_key=secret_key)
+			users.append(user_dict)
+
+
+		# adds each user to user list
+		for user in users:
+			new_user = User(user, tradeapi)
+			cls._users.append(new_user)

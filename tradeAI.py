@@ -50,7 +50,6 @@ def read():
 	User.view(LOGDIR)
 	
 def quick_sell():
-
 	# Sell any open positions
 	User.users_sell()
 	
@@ -58,6 +57,7 @@ def trailing(is_paper):
     User.users_trailing()
 
 def upload():
+	# Upload data to website
 	import python.update_wp as wp
 	print('Uploading...')
 	User.log_portfolio_history()
@@ -66,12 +66,10 @@ def upload():
 
 def trade(Stock, User, model):
 	NUM_BEST_STOCKS = 5
-	#from python.stock import Stock
-	#from python.PYkeys import Keys
 	from time import sleep
 
 
-	if True: #User.get_api().get_clock().is_open:
+	if User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		# Sell any open positions
 		User.users_sell_all()
@@ -87,7 +85,6 @@ def trade(Stock, User, model):
 		# Buy the best stocks
 		User.users_buy(diversified_stocks, best_stocks)
 
-		upload()
 	else:
 		print('Stock market is not open today.')
 		
@@ -97,7 +94,7 @@ def trade(Stock, User, model):
 def import_data(is_test, is_backtest, time_frame):
 	print('Loading AI...')
 	from tensorflow import keras
-	model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+	model = keras.models.load_model('../production_model.h5', compile=False)
 	
 	if is_backtest:
 		from python.user import backtestUser as User
@@ -133,6 +130,8 @@ def import_data(is_test, is_backtest, time_frame):
 		this_stock = Stock(symbol)
 	
 
+	# Uncomment to use all available stocks (about 9,000)
+	# Note: takes about an hour to predict
 	'''
 	import alpaca_trade_api as theapi
 	# get all available stocks
@@ -153,20 +152,24 @@ if __name__ == '__main__':
 	import argparse
 	parser = argparse.ArgumentParser(description='Control Trading AI')
 	parser.add_argument("command", metavar="<command>",
-						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', upload")
+						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 	
 	parser.add_argument("-t", action='store_true', required=False,
-						help='Include -t if this is a shortened test')
+						help= "Include -t if this is a shortened test")
 						
 	parser.add_argument("--name", help = "Name for new model when training")
 						
-	parser.add_argument("-b", action='store_true', required=False)
+	parser.add_argument("-b", action='store_true', required=False,
+						help= "Use -b to backtest")
 	
 	parser.add_argument("--time", default='1D',
 						help = "Time period to buy and sell on")
 
 	parser.add_argument("-p", action='store_true', required=False,
-						help='When trading include -p to only trade paper account')
+						help= "When trading include -p to only trade paper account")
+
+	parser.add_argument("-d", action='store_true', required=False,
+						help= "Use -d for demonstration, this will use demonstration settings")
 			
 	args = parser.parse_args()
 
@@ -183,6 +186,35 @@ if __name__ == '__main__':
 		Stock, User, model = import_data(args.t, args.b, args.time)
 
 		backtest(int(num_days), model, Stock)
+
+	elif args.d:
+		import alpaca_trade_api as tradeapi
+		from python.user import DemonstrationUser as User
+		User.update_users(tradeapi)
+
+		print('Loading AI...')
+		from tensorflow import keras
+		model = keras.models.load_model('data/models/demonstration_model.h5', compile=False)
+
+		# setup stocks
+		from python.Level1.stock import Stock
+		Stock.setup(NUMBARS, model, args.time, User.get_api())
+
+
+		# Load S&P500
+		print('Loading stock list...')
+		
+		table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+		df = table[0]
+		sp = df['Symbol']
+		sp = sp.tolist()
+		sp = sp[0:20]
+
+		for symbol in sp:
+			this_stock = Stock(symbol)
+
+		trade(Stock, User, model)
+		
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
