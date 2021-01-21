@@ -42,7 +42,7 @@ def upload_indicator():
     print('uploading!')
 
     # Update website
-    client = Client('http://karatrader.com/xmlrpc.php', 'karatrader', 'N5xXLsSZzaD3pz7l')
+    client = Client('http://karatrader.com/xmlrpc.php', '', '')
 
     page = WordPressPage()
     page.title = 'Indicator Stats'
