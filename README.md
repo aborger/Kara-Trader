@@ -51,5 +51,26 @@ So far the second version is coming along great! The system has been built and t
 
 Checkout the [Kara Trader](https://www.karatrader.com) website for more information!
 
+# How To Run
+Note: I am currently working on modeling a business around Kara Trader. This repository is public to allow viewing of technique, methods, and skills used. The program will still function, but key features have been left out so your account performance will not be the same as the functional program.
 
-Note: I am currently modeling a business around Kara Trader. This repository is public to allow viewing of technique, methods, and skills used. The program may still function correctly, but key features have been left out so your experience will not be the same as the functional program.
+### 1. Install Requirements
+
+  Kara-Trader requires python 3.8.3 then use pip to install requirements:
+
+  ```pip3 install -r requirements.txt```
+
+### 2. Run demo
+
+The -d parameter will run a demonstration.
+
+There are three demo commands:
+
+Buy: ```python3 tradeAI.py buy -d```
+
+Sell: ```python3 tradeAI.py sell -d```
+
+Set Trailing Stop: ```python3 tradeAI.py trail -d```
+
+
+
