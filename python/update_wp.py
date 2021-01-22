@@ -8,6 +8,7 @@ from python.Level1.Level2.predict import normal_round
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 PORTFOLIO_HISTORY_FILE = 'data/portfolio_history/aborger@nnu.edu.csv'
 STOCK_HISTORY_FILE = 'data/stock_history/SPY.csv'
+WORDPRESS_DATA_FILE = '../Sensitive_Data/wordpress.csv'
 
 
 def upload_indicator():
@@ -41,8 +42,14 @@ def upload_indicator():
 
     print('uploading!')
 
+    wordpress_data = pd.read_csv(WORDPRESS_DATA_FILE, sep=r'\s*,\s*', engine='python')
+    wordpress_data = wordpress_data.iloc[0]
+
     # Update website
-    client = Client('http://karatrader.com/xmlrpc.php', 'karatrader', 'N5xXLsSZzaD3pz7l')
+    try:
+        client = Client('http://karatrader.com/xmlrpc.php', wordpress_data["username"], wordpress_data["password"])
+    except wordpress_xmlrpc.exceptions.ServerConnectionError:
+        print('Error, did not upload!')
 
     page = WordPressPage()
     page.title = 'Indicator Stats'
@@ -109,8 +116,11 @@ def upload_performance():
     string += '</body>'
 
 
+    try:
+        client = Client('http://karatrader.com/xmlrpc.php', 'karatrader', 'N5xXLsSZzaD3pz7l')
+    except wordpress_xmlrpc.exceptions.ServerConnectionError:
+        print('Error, did not upload!')
 
-    client = Client('http://karatrader.com/xmlrpc.php', 'karatrader', 'N5xXLsSZzaD3pz7l')
 
     page = WordPressPage()
     page.title = 'Kara Origin'

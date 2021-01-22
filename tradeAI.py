@@ -94,7 +94,7 @@ def trade(Stock, User, model):
 def import_data(is_test, is_backtest, time_frame):
 	print('Loading AI...')
 	from tensorflow import keras
-	model = keras.models.load_model('../production_model.h5', compile=False)
+	model = keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
 	
 	if is_backtest:
 		from python.user import backtestUser as User
@@ -213,7 +213,12 @@ if __name__ == '__main__':
 		for symbol in sp:
 			this_stock = Stock(symbol)
 
-		trade(Stock, User, model)
+		if args.command == 'buy':
+			trade(Stock, User, model)
+		elif args.command == 'sell':
+			quick_sell()
+		elif args.command == 'trail':
+			trailing(args.p)
 		
 	else:
 	# Everything else

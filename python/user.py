@@ -20,8 +20,8 @@ import stripe
 import time
 
 PORTFOLIO_HISTORY_DIR = 'data/portfolio_history/'
-DEMO_USER_PATH = 'data/user_data/demoUsers.csv'
-STRIPE_DATA_PATH = '../Stripe_API.csv'
+USER_DATA_DIR = 'data/user_data/'
+SENSITIVE_DATA_DIR = '../Sensitive_Data/'
 
 # If modifying these scopes, delete the file token.pickle.
 
@@ -31,10 +31,9 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 # The ID and range of a sample spreadsheet.
 
-#SAMPLE_SPREADSHEET_ID = '1LJogRzysqMesYmIL__1Rg2FNP4BfNivQMaZLw_bvu6M'
-SAMPLE_SPREADSHEET_ID = '1b6aOFfJpCvjXwFaJmqRxIxB_PxVO_eHKWQ6bA5IQB8Q'
+KEYS_SHEET = '1b6aOFfJpCvjXwFaJmqRxIxB_PxVO_eHKWQ6bA5IQB8Q'
 
-SAMPLE_RANGE_NAME = 'Form Responses 1'
+KEYS_PAGE = 'Form Responses 1'
 
 
 class User:
@@ -98,23 +97,23 @@ class User:
 				
 	@classmethod
 	def _update_stripe_accounts(cls):
-		stripe_data = pd.read_csv(STRIPE_DATA_PATH, sep=r'\s*,\s*', engine='python')
+		stripe_data = pd.read_csv(SENSITIVE_DATA_DIR + 'Stripe_API.csv', sep=r'\s*,\s*', engine='python')
+		stripe_data = stripe_data.iloc[0]
 
-		stripe.api_key = stripe_data["Live Key"][0]
-
+		stripe.api_key = stripe_data["Live Key"]
 		
 		# Transfer any website subscriptions to new subscription plan
-		old_subscriptions = stripe.Subscription.list(price=stripe_data["Old Plan"][0])
+		old_subscriptions = stripe.Subscription.list(price=stripe_data["Old Plan"])
 		old_subs = old_subscriptions["data"]
 		for sub in old_subs:
 			customer_id = sub["customer"]
 			subscription_id = sub["id"]
 			stripe.Subscription.delete(subscription_id)
-			stripe.Subscription.create(customer=customer_id, items=[{"price": stripe_data["New Price"][0]},],)
+			stripe.Subscription.create(customer=customer_id, items=[{"price": stripe_data["New Price"]},],)
 			print('New Customer ' + customer_id + 'has been transfered')
 		
 		# Create list to connect subscription items to emails
-		new_subscriptions = stripe.Subscription.list(price=stripe_data["New Price"][0])
+		new_subscriptions = stripe.Subscription.list(price=stripe_data["New Price"])
 		new_subs = new_subscriptions["data"]
 		customer_sub_ids = {}
 		for sub in new_subs:
@@ -145,9 +144,9 @@ class User:
 		# created automatically when the authorization flow completes for the first
 		# time.
 
-		path_to_user_data = 'data/user_data/'
-		if os.path.exists(path_to_user_data + 'token.pickle'):
-			with open(path_to_user_data + 'token.pickle', 'rb') as token:
+
+		if os.path.exists(SENSITIVE_DATA_DIR + 'token.pickle'):
+			with open(SENSITIVE_DATA_DIR + 'token.pickle', 'rb') as token:
 				creds = pickle.load(token)
 
 		# If there are no (valid) credentials available, let the user log in.
@@ -155,18 +154,18 @@ class User:
 			if creds and creds.expired and creds.refresh_token:
 				creds.refresh(Request())
 			else:
-				flow = InstalledAppFlow.from_client_secrets_file(path_to_user_data+ 'credentials.json', SCOPES)
+				flow = InstalledAppFlow.from_client_secrets_file(SENSITIVE_DATA_DIR + 'credentials.json', SCOPES)
 				creds = flow.run_local_server(port=0)
 
 			# Save the credentials for the next run
-			with open(path_to_user_data + 'token.pickle', 'wb') as token:
+			with open(SENSITIVE_DATA_DIR + 'token.pickle', 'wb') as token:
 				pickle.dump(creds, token)
 
 		service = build('sheets', 'v4', credentials=creds)
 
 		# Call the Sheets API
 		sheet = service.spreadsheets()
-		result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME).execute()
+		result = sheet.values().get(spreadsheetId=KEYS_SHEET, range=KEYS_PAGE).execute()
 
 		user_values = result.get('values', [])
 
@@ -595,8 +594,8 @@ class DemonstrationUser(User):
 		cls._users = []
 		# gets user data
 		users = []
-		if os.path.exists(DEMO_USER_PATH):
-			data = pd.read_csv(DEMO_USER_PATH, sep=r'\s*,\s*', engine='python')
+		if os.path.exists(USER_DATA_DIR + 'demo_user.csv'):
+			data = pd.read_csv(DEMO_USER_PATH + 'demo_user.csv', sep=r'\s*,\s*', engine='python')
 			data = data.to_numpy()
 			for user in data:
 				user_dict = dict(email=user[0], keyID=user[1], secret_key=user[2])
