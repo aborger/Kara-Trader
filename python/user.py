@@ -218,76 +218,32 @@ class User:
 	#-----------------------------------------------------------------------#
 
 	@classmethod
-	def users_buy(cls, diversified_stocks, best_stocks):
-		DEBUG = False
+	def users_buy(cls, diversified_stocks, NUM_BEST_STOCKS):
+		DEBUG = True
 		# Buy stocks for each user
 		for user in cls._users:
 			print('User: ' + user.info['email'])
 			print('                 Buying   ')
 			print('========================================')
 			# find cheapest stock to make sure we buy as much as possible
-			cheapest_price = 999999
-			for stock_dict in diversified_stocks:
-				try:
-					price = stock_dict['stock_object'].find_current_price()
-				except:
-					raise
-				else:
-					if price < cheapest_price:
-						cheapest_price = price
+
 			buying_power = float(user.api.get_account().buying_power)
-			
 			# Buy the recommended ratio of stocks
-			if DEBUG:
-				print('Diversified_stocks:')
 			for stock_dict in diversified_stocks:
-				max_money_for_stock = buying_power * stock_dict['buy_ratio']
-				current = stock_dict['stock_object'].find_current_price()
-				quantity = int(max_money_for_stock / current)
-				
+				dollars_to_spend = buying_power * stock_dict['buy_ratio']
+				dollars_to_spend = str(round(dollars_to_spend, 2))
 				if DEBUG:
 					print('------------------------------------------')
 					print('Stock: ' + stock_dict['stock_object'].symbol)
 					print('gain: ' + str(stock_dict['stock_object'].gain))
 					print('buying_power: ' + str(buying_power))
 					print('buy_ratio: ' + str(stock_dict['buy_ratio']))
-					print('max_money: ' + str(max_money_for_stock))
-					print('Current: ' + str(current))
-					print('Quantity: ' + str(quantity))
-				if quantity > 0:
-					if quantity * current < buying_power:
-						stock_dict['stock_object'].buy(user.api, quantity)
-					else:
-						print('Insufficient buying power')
+					print('dollars_to_spend: ' + dollars_to_spend)
 
 
-			# Goes from best stock to lowest stock, and buys if possible
-			still_buying = True
-			buying_power = float(user.api.get_account().buying_power)
-			if DEBUG:
-				print('')
-				print('')
-				print('ALL STOCKS ========================')
-				print('')
-				print('')
-			while still_buying: # stops after no more stocks are bought
-				still_buying = False
-				for stock in best_stocks:
-					current = stock.find_current_price()
-					quantity = int(buying_power / current)
-					if DEBUG:
-						print('------------------------------------------')
-						print('Stock: ' + stock.symbol)
-						print('buying_power: ' + str(buying_power))
-						print('Current: ' + str(current))
-						print('Quantity: ' + str(quantity))
-					if quantity > 0:
-						if quantity * current < buying_power:
-							stock.buy(user.api, quantity)
-							buying_power -= quantity * current
-							still_buying = True
-						else:
-							print('Insufficient buying power')
+				stock_dict['stock_object'].buy_notional(user.api, dollars_to_spend)
+
+
 				
 
 	@classmethod

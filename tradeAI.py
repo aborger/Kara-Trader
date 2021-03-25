@@ -69,7 +69,7 @@ def trade(Stock, User, model):
 	from time import sleep
 
 
-	if User.get_api().get_clock().is_open:
+	if True: #User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		# Sell any open positions
 		User.users_sell_all()
@@ -77,13 +77,13 @@ def trade(Stock, User, model):
 		print('Calculating best stocks...')
 
 		start_time = time.time()
-		diversified_stocks, best_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_boosters())
+		diversified_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_boosters())
 		end_time = time.time()
 
 		print(f"Time to predict is {end_time - start_time}")
 
 		# Buy the best stocks
-		User.users_buy(diversified_stocks, best_stocks)
+		User.users_buy(diversified_stocks, NUM_BEST_STOCKS)
 
 	else:
 		print('Stock market is not open today.')
@@ -91,7 +91,7 @@ def trade(Stock, User, model):
 #===================================================================#
 #							Helping Functions						#
 #===================================================================#
-def import_data(is_test, is_backtest, time_frame):
+def import_data(is_test, is_backtest, time_frame, is_shortened):
 	print('Loading AI...')
 	from tensorflow import keras
 	model = keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
@@ -110,7 +110,7 @@ def import_data(is_test, is_backtest, time_frame):
 
 	# Load S&P500
 	print('Loading stock list...')
-	
+	"""
 	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
 	df = table[0]
 	sp = df['Symbol']
@@ -119,7 +119,7 @@ def import_data(is_test, is_backtest, time_frame):
 	sp.remove('AFL') # AFL has wierd data
 	sp.remove('DOV') # DOV also did not match historical values
 	
-	if is_test:
+	if is_shortened:
 		sp = sp[0:20]
 
 
@@ -128,17 +128,19 @@ def import_data(is_test, is_backtest, time_frame):
 	
 	for symbol in sp:
 		this_stock = Stock(symbol)
-	
+	"""
 
 	# Uncomment to use all available stocks (about 9,000)
 	# Note: takes about an hour to predict
-	'''
+	
 	import alpaca_trade_api as theapi
 	# get all available stocks
 	assets = User.get_api().list_assets(status='active')
-	for asset in assets:
-		this_stock = Stock(asset.symbol)
-	'''
+	df = pd.DataFrame([a._raw for a in assets])
+	fractionable = df[df.fractionable]
+	for index, row in fractionable.iterrows():
+		this_stock = Stock(row.symbol)
+	
 	
 	
 	
@@ -155,7 +157,10 @@ if __name__ == '__main__':
 						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 	
 	parser.add_argument("-t", action='store_true', required=False,
-						help= "Include -t if this is a shortened test")
+						help= "Include -t to only use test users")
+
+	parser.add_argument("-s", action='store_true', required=False,
+						help= "Include -s to only use some stocks")
 						
 	parser.add_argument("--name", help = "Name for new model when training")
 						
@@ -183,7 +188,7 @@ if __name__ == '__main__':
 		import python.Level1.Level2.backtest_api as tradeapi
 		
 		
-		Stock, User, model = import_data(args.t, args.b, args.time)
+		Stock, User, model = import_data(args.t, args.b, args.time, args.s)
 
 		backtest(int(num_days), model, Stock)
 
@@ -223,7 +228,7 @@ if __name__ == '__main__':
 	else:
 	# Everything else
 		import alpaca_trade_api as tradeapi
-		Stock, User, model = import_data(args.t, args.b, args.time)
+		Stock, User, model = import_data(args.t, args.b, args.time, args.s)
 		
 		if args.command == 'train':
 			train(args.name)
