@@ -75,6 +75,31 @@ class Stock():
 		else:
 			print('WARNING, ACTUALLY TRADE = FALSE')
 
+	def buy_notional(self, api, dollar_amount):
+		print('Buying ' + self.symbol + ' Dollar Amount: ' + str(dollar_amount))
+		if ACTUALLY_TRADE:
+			data = {
+				"symbol": self.symbol,
+				"notional": dollar_amount,
+				"side": 'buy',
+				"type": 'market',
+				"time_in_force": "day"
+			}
+			try:
+				api._request('POST', '/orders', data=data)
+				"""
+				api.submit_order(
+					symbol=self.symbol,
+					notional=dollar_amount,
+					side='buy',
+					type='market',
+					time_in_force='day')
+				"""
+			except Exception as exc:
+				print(exc)
+		else:
+			print('WARNING, ACTUALLY TRADE = FALSE')
+
 	def sell(self, api, quantity):
 		print ('Sold ' + self.symbol)
 		if ACTUALLY_TRADE:
@@ -116,7 +141,7 @@ class Stock():
 	# second_best_stocks is num_best_stocks next best stocks
 	@classmethod
 	def find_diversity(cls, num_best_stocks, boosters):
-		best_stocks, all_best_stocks = Stock._find_best(num_best_stocks, boosters)
+		best_stocks = Stock._find_best(num_best_stocks, boosters)
 		gain_sum = 0
 		for stock in best_stocks:
 			gain_sum += stock.gain
@@ -129,7 +154,7 @@ class Stock():
 			this_buy_ratio = stock.gain * value_per_gain
 			this_stock = dict(stock_object = stock, buy_ratio = this_buy_ratio/100)
 			diversified_stocks.append(this_stock)
-		return diversified_stocks, all_best_stocks
+		return diversified_stocks
 	
 
 		
@@ -210,19 +235,18 @@ class Stock():
 			log.write(stock.symbol + ', ' + str(stock.real_gain) + ', ' + str(stock.predicted_price) + ', ' + str(stock.current_price) + '\n')
 		log.close()
 
-		# Add best gains to max_stocks
-		max_stocks = []
+		# Add best gains to best_stocks
+		best_stocks = []
 		for stock in stocks_with_gains:
-				if len(max_stocks) < num_best_stocks * 2:
-					max_stocks.append(stock)
-				elif stock.gain > max_stocks[-1].gain:
-					max_stocks.pop()
-					max_stocks.append(stock)
+				if len(best_stocks) < num_best_stocks:
+					best_stocks.append(stock)
+				elif stock.gain > best_stocks[-1].gain:
+					best_stocks.pop()
+					best_stocks.append(stock)
 				
 		# sort list so lowest gain is at the end
-		max_stocks.sort(reverse=True, key=get_gain)
-		best = max_stocks[0:num_best_stocks]
-		return best, max_stocks
+		best_stocks.sort(reverse=True, key=get_gain)
+		return best_stocks
 
 
 	#-----------------------------------------------------------------------#
