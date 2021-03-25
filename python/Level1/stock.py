@@ -4,7 +4,7 @@ BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
 USE_MULTIPROCESSING = False
-ACTUALLY_TRADE = True
+ACTUALLY_TRADE = False
 
 class Stock():
 	_NUMBARS = None
@@ -84,7 +84,7 @@ class Stock():
 					qty=quantity,
 					side='sell',
 					type='market',
-					time_in_force='gtc')
+					time_in_force='day')
 			except Exception as exc:
 				print(exc)
 		else:
