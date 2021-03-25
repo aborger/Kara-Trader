@@ -3,7 +3,7 @@ import pathos
 BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
-USE_MULTIPROCESSING = False
+USE_MULTIPROCESSING = True
 ACTUALLY_TRADE = False
 
 class Stock():
@@ -166,10 +166,6 @@ class Stock():
 				
 		def get_gain(stock):
 				return stock.gain
-		
-		
-
-		
 
 		# find gain for every stock
 		stocks_with_gains = []

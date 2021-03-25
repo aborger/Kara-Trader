@@ -79,7 +79,7 @@ def find_gain(stock, api, model, time_frame, NUMBARS):
     return stock
 
 def find_gains(worker, time_frame, NUMBARS):
-    model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
+    model = keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
     stocks = worker["stocks"]
     api = worker["api"]
 
