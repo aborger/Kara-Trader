@@ -38,7 +38,8 @@ def backtest(numdays, model, Stock):
 		User.get_portfolio()
 
 def test():
-	User.get_stats()
+	#User.get_stats()
+	Stock.collect_current_prices()
 	
 def charge():
     User.charge_users()
@@ -137,11 +138,14 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 	# get all available stocks
 	assets = User.get_api().list_assets(status='active')
 	df = pd.DataFrame([a._raw for a in assets])
-	fractionable = df[df.fractionable]
+	fractionable = df[df.fractionable] # 1985 stocks as of 3/25/21
+
+	if is_shortened:
+		fractionable = fractionable[0:200]
+
 	for index, row in fractionable.iterrows():
 		this_stock = Stock(row.symbol)
-	
-	
+
 	
 	
 	return Stock, User, model

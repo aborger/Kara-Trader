@@ -88,10 +88,12 @@ class User:
 			elif is_paper:
 				if email == 'kara':
 					cls._users.append(new_user)
+					cls._boosters.append(new_user)
 			else:
 				if new_user.status:
 					new_user.sub_id = sub_items.get(email, None)
 					cls._users.append(new_user)
+					cls._boosters.append(new_user)
 
 		
 				
@@ -235,6 +237,7 @@ class User:
 				if DEBUG:
 					print('------------------------------------------')
 					print('Stock: ' + stock_dict['stock_object'].symbol)
+					print('Current: ' + str(stock_dict['stock_object'].current_price))
 					print('gain: ' + str(stock_dict['stock_object'].gain))
 					print('buying_power: ' + str(buying_power))
 					print('buy_ratio: ' + str(stock_dict['buy_ratio']))

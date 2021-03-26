@@ -15,6 +15,103 @@ def normal_round(num, ndigits=0):
         digit_value = 10 ** ndigits
         return int(num * digit_value + 0.5) / digit_value
 	
+
+def denormalize(normal, key):
+    x = np.empty(shape=normal.shape)
+    for num in range(0, x.shape[0]):
+        a = normal[num] * key[num][1]
+        x[num] = a + key[num][0]
+    return x
+
+def norm(x):
+    normal = np.empty(shape=x.shape)
+    key = np.empty(shape=(x.shape[0], 2))
+    for num in range(0, x.shape[0]):
+        s = x[num]
+        s_prices = s[:,:4]
+        r = s_prices.reshape(1, s_prices.shape[0] * s_prices.shape[1])
+        rmin = r.min()
+        rmax = r.max()
+        std = (s_prices - rmin) / (rmax - rmin)
+        key[num][0] = rmin
+        key[num][1] = rmax - rmin
+        
+        v = s[:,4:]
+        vmin = v.min()
+        vmax = v.max()
+        vtd = (v - vmin) / (vmax - vmin)
+        normal[num] = np.append(std, vtd, axis=1)
+    return normal, key
+
+def denorm(pred, key):
+    x = np.empty(shape=pred.shape)
+    for num in range(pred.shape[0]):
+        a = pred[num] * key[num][1]
+        x[num] = a + key[num][0]
+    return x
+
+
+        
+
+def GPU_find_gain(Stock, model, time_frame, NUMBARS):
+    Stock.collect_current_prices()
+    Stock.collect_prices(time_frame, NUMBARS)
+    stocks = Stock.get_stock_list()
+    num_stocks = len(stocks)
+    
+    datasets = []
+    for stock in stocks:
+        datasets.append(stock.prev_bars)
+
+    x = np.array(datasets)
+
+
+    print('normalizing...')
+    normal, key = norm(x)
+        
+    
+    # Predict Price
+    print('predicting...')
+    prediction = model.predict(normal)
+    prediction = np.reshape(prediction, (prediction.shape[0],))
+    
+    predicted_prices = denorm(prediction, key)
+
+
+    currents = [x.current_price for x in stocks]
+    currents = np.array(currents)
+
+    error = 0
+    for i in currents:
+        if i == 0:
+            error += 1
+
+    print('Error: ' + str(error))
+
+    gain = ((predicted_prices / currents) - 1) *100
+
+    gain = np.around(gain, 3)
+    real_gain = gain
+
+
+    predicted_prices = np.around(predicted_prices, 2)
+    current_prices = np.around(currents, 3)
+
+    gains = []
+    for g in gain:
+        if g > 0:
+            gains.append(g)
+        else:
+            gains.append(0)
+
+    for i in range(0, len(stocks)):
+        stocks[i].set_stats(gains[i], real_gain[i], predicted_prices[i], current_prices[i])
+
+    return stocks
+
+
+
+
 def find_gain(stock, api, model, time_frame, NUMBARS):
     print('Predicting gain for ' + stock.symbol)
     # Get bars
@@ -90,4 +187,3 @@ def find_gains(worker, time_frame, NUMBARS):
     return predicted_stocks
 
 
-		

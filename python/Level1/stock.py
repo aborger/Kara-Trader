@@ -1,10 +1,14 @@
 import pathos
+import math
 
 BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
-USE_MULTIPROCESSING = True
+USE_MULTIPROCESSING = False
+USE_GPU = True
 ACTUALLY_TRADE = False
+
+MAX_NUM_STOCKS = 200 # Max number of stocks to call from alpaca api
 
 class Stock():
 	_NUMBARS = None
@@ -20,12 +24,16 @@ class Stock():
 		self.gain = None
 		self.real_gain = None
 		self.predicted_price = None
+		self.prev_bars = None
 		self.current_price = None
 		if isinstance(ticker, str): # its a regular string
 			self.symbol = ticker
 			Stock._stocks.append(self)
 		else: # create a stock object from position object
 			self.symbol = ticker.symbol
+
+	def __str__(self):
+		return 'Symbol: ' + self.symbol + ' Price: ' + str(self.current_price) + ' Prediction: ' + str(self.predicted_price) + ' Gain: ' + str(self.gain) + ' RGain: ' + str(self.real_gain)
 
 
 	@classmethod
@@ -35,6 +43,62 @@ class Stock():
 		cls._time_frame = time_frame
 		cls._main_api = main_api
 
+	@classmethod
+	def collect_current_prices(cls):
+		# alpaca api only allows a certain number of stocks per api call
+		# several calls are necessary
+		stock_symbols = [x.symbol for x in cls._stocks]
+		num_repititions = math.ceil(len(stock_symbols) / MAX_NUM_STOCKS)
+		
+		# get prices and add to stock attribute
+		for i in range(0, num_repititions):
+			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
+			barset = cls._main_api.get_barset(stocks_to_get, 'minute', limit=1)
+			for stock_num in range(0, len(barset)):
+				symbol = stocks_to_get[stock_num]
+				this_stocks_bars = barset[symbol]
+				price = -1
+				try:
+					price = this_stocks_bars[0].c
+				except:
+					print(cls._stocks[i*MAX_NUM_STOCKS + stock_num].symbol + 'does not have price')
+				cls._stocks[i*MAX_NUM_STOCKS + stock_num].current_price = price
+
+		stocks = cls._stocks
+		for stock in stocks:
+			if stock.current_price == 0 or None:
+				cls._stocks.remove(stock)
+
+	@classmethod
+	def collect_prices(cls, time_frame, num_bars):
+		# figure out how many times you have to call the api
+		stock_symbols = [x.symbol for x in cls._stocks]
+		num_repititions = math.ceil(len(stock_symbols) / MAX_NUM_STOCKS)
+
+		for i in range(0, num_repititions):
+			# figure out which stocks to get each time
+			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
+			# call the api
+			barset = cls._main_api.get_barset(stocks_to_get, time_frame, limit=num_bars)
+			# add each stocks bars to its attribute
+			for stock_num in range(0, len(barset)):
+				symbol = stocks_to_get[stock_num]
+				this_stocks_bars = barset[symbol]
+
+				dataSet = []
+				for barNum in this_stocks_bars:
+					bar = []
+					bar.append(barNum.o)
+					bar.append(barNum.c)
+					bar.append(barNum.h)
+					bar.append(barNum.l)
+					bar.append(barNum.v)
+					dataSet.append(bar)
+
+				cls._stocks[i*MAX_NUM_STOCKS + stock_num].prev_bars = dataSet
+
+
+		
 		
 
 
@@ -87,14 +151,6 @@ class Stock():
 			}
 			try:
 				api._request('POST', '/orders', data=data)
-				"""
-				api.submit_order(
-					symbol=self.symbol,
-					notional=dollar_amount,
-					side='buy',
-					type='market',
-					time_in_force='day')
-				"""
 			except Exception as exc:
 				print(exc)
 		else:
@@ -208,7 +264,12 @@ class Stock():
 		
 			for group in predicted_stocks:
 				stocks_with_gains = stocks_with_gains + group
+		elif USE_GPU:
+			from python.Level1.Level2.predict import GPU_find_gain
+			stocks = GPU_find_gain(cls, cls._model, cls._time_frame, cls._NUMBARS)
 
+			for i in range(0, len(cls.get_stock_list())):
+				stocks_with_gains.append(stocks[i])
 		else:
 			from python.Level1.Level2.predict import find_gain
 			from tensorflow import keras
@@ -230,19 +291,12 @@ class Stock():
 		for stock in stocks_with_gains:	
 			log.write(stock.symbol + ', ' + str(stock.real_gain) + ', ' + str(stock.predicted_price) + ', ' + str(stock.current_price) + '\n')
 		log.close()
-
-		# Add best gains to best_stocks
-		best_stocks = []
-		for stock in stocks_with_gains:
-				if len(best_stocks) < num_best_stocks:
-					best_stocks.append(stock)
-				elif stock.gain > best_stocks[-1].gain:
-					best_stocks.pop()
-					best_stocks.append(stock)
 				
 		# sort list so lowest gain is at the end
-		best_stocks.sort(reverse=True, key=get_gain)
-		return best_stocks
+		stocks_with_gains.sort(reverse=True, key=get_gain)
+	
+		best = stocks_with_gains[:num_best_stocks]
+		return best
 
 
 	#-----------------------------------------------------------------------#
