@@ -6,9 +6,10 @@
 import pandas as pd
 import time
 
-NUMBARS = 10
-TRAIN_BAR_LENGTH = 500
+NUMBARS = 4
+TRAIN_BAR_LENGTH = 12
 DATA_PER_STOCK = 5
+NUM_STOCKS = 1
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
@@ -124,7 +125,7 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 	fractionable = df[df.fractionable] # 1985 stocks as of 3/25/21
 
 	if is_shortened:
-		fractionable = fractionable[0:50]
+		fractionable = fractionable[0:NUM_STOCKS]
 
 	for index, row in fractionable.iterrows():
 		this_stock = Stock(row.symbol)

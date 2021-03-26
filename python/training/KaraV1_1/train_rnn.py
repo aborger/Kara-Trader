@@ -34,11 +34,15 @@ class RNN(tf.keras.Model):
 		x = self.dropout(x)
 		x = self.dense1(x)
 		x = self.dense2(x)
+		print('output: ' + str(x))
 		return x
 
 	def train(self, prediction, truth):
+		print('pred shape: ' + str(prediction.shape))
+		print('truth shape: ' + str(truth.shape))
 		with tf.GradientTape() as tape:
 			pred = self.call(prediction)
+			print('pred: ' + str(pred))
 			loss = config.mse(truth, pred)
 		grads = tape.gradient(loss, self.trainable_variables)
 		config.optimizer.apply_gradients(zip(grads, self.trainable_variables))

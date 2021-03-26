@@ -50,7 +50,18 @@ def denorm(pred, key):
     return x
 
 def fit(x, key):
-    return x * (x - key[:,0]) / (key[:,1])
+    m = x - key[:,0]
+    d = key[:,1]
+    print('x: ' + str(x.shape))
+    print(x)
+    print('m' + str(m.shape))
+    print(m)
+    x = x * m
+    print('new x: ' + str(x.shape))
+    print(x)
+    x = x / d
+    return x
+    #return x * (x - key[:,0]) / (key[:,1])
     
 
 
