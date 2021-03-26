@@ -4,7 +4,7 @@ BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
 USE_MULTIPROCESSING = True
-ACTUALLY_TRADE = False
+ACTUALLY_TRADE = True
 
 class Stock():
 	_NUMBARS = None
