@@ -276,13 +276,12 @@ class User:
 	@classmethod
 	def user_manual_trail(cls): # to be used with notional buy
 		percent = 0.01
-		Stock.unload_stocks()
+
+		stocks = []
 		for user in cls._users:
 			portfolio = user.api.list_positions()
-			for position in portfolio:
-				this = Stock(position)
-
-		Stock.removed_dupe_stocks()
+			[stocks.append(position.symbol) for position in portfolio if position.symbol not in stocks]
+		Stock.set_stocks(stocks)
 
 		while True: #cls.get_api().get_clock().is_open:
 			print('refreshing prices...')

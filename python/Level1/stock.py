@@ -51,8 +51,10 @@ class Stock():
 		cls._stocks = []
 
 	@classmethod
-	def removed_dupe_stocks(cls):
-		cls._stocks = list(set(cls._stocks))
+	def set_stocks(cls, stock_symbols):
+		cls.unload_stocks()
+		for stock in stock_symbols:
+			Stock(stock)
 
 	@classmethod
 	def collect_current_prices(cls):
@@ -75,11 +77,14 @@ class Stock():
 					print(cls._stocks[i*MAX_NUM_STOCKS + stock_num].symbol + 'does not have price')
 				cls._stocks[i*MAX_NUM_STOCKS + stock_num].current_price = price
 
-		stocks = cls._stocks
-		for stock in stocks:
-			if stock.current_price == 0 or None:
-				cls._stocks.remove(stock)
-
+		"""
+		good_stocks = []
+		for stock in cls._stocks:
+			if stock.current_price == None:
+				good_stocks.append(stock)
+				print(stock)
+		#cls._stocks = good_stocks
+		"""
 	@classmethod
 	def collect_prices(cls, time_frame, num_bars):
 		# figure out how many times you have to call the api
@@ -108,7 +113,12 @@ class Stock():
 
 				cls._stocks[i*MAX_NUM_STOCKS + stock_num].prev_bars = dataSet
 
+		good_stocks = []
+		for stock in cls._stocks:
+			if len(stock.prev_bars) == num_bars:
+				good_stocks.append(stock)
 
+		cls._stocks = good_stocks
 		
 		
 

@@ -112,28 +112,7 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 
 	# Load S&P500
 	print('Loading stock list...')
-	"""
-	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-	df = table[0]
-	sp = df['Symbol']
 
-	sp = sp.tolist()
-	sp.remove('AFL') # AFL has wierd data
-	sp.remove('DOV') # DOV also did not match historical values
-	
-	if is_shortened:
-		sp = sp[0:20]
-
-
-	if is_backtest:
-		sp = tradeapi.api.get_data(sp, time_frame)
-	
-	for symbol in sp:
-		this_stock = Stock(symbol)
-	"""
-
-	# Uncomment to use all available stocks (about 9,000)
-	# Note: takes about an hour to predict
 	
 	import alpaca_trade_api as theapi
 	# get all available stocks
