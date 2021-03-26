@@ -64,10 +64,12 @@ class Stock():
 					print(cls._stocks[i*MAX_NUM_STOCKS + stock_num].symbol + 'does not have price')
 				cls._stocks[i*MAX_NUM_STOCKS + stock_num].current_price = price
 
-		stocks = cls._stocks
-		for stock in stocks:
-			if stock.current_price == 0 or None:
-				cls._stocks.remove(stock)
+		good_stocks = []
+		for stock in cls._stocks:
+			if len(stock.prev_bars) == num_bars:
+				good_stocks.append(stock)
+
+		cls._stocks = good_stocks
 
 	@classmethod
 	def collect_prices(cls, num_bars):
