@@ -38,8 +38,8 @@ def backtest(numdays, model, Stock):
 		User.get_portfolio()
 
 def test():
-	#User.get_stats()
-	Stock.collect_current_prices()
+	User.get_stats()
+	#Stock.collect_current_prices()
 	
 def charge():
     User.charge_users()
@@ -55,7 +55,8 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-    User.users_trailing()
+    #User.users_trailing()
+	User.user_manual_trail()
 
 def upload():
 	# Upload data to website
@@ -70,7 +71,7 @@ def trade(Stock, User, model):
 	from time import sleep
 
 
-	if True: #User.get_api().get_clock().is_open:
+	if User.get_api().get_clock().is_open:
 		User.cancel_orders()
 		# Sell any open positions
 		User.users_sell_all()

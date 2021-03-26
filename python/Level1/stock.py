@@ -26,11 +26,14 @@ class Stock():
 		self.predicted_price = None
 		self.prev_bars = None
 		self.current_price = None
+		self.trail_price = 0
+		self.stop_price = 0
 		if isinstance(ticker, str): # its a regular string
 			self.symbol = ticker
 			Stock._stocks.append(self)
 		else: # create a stock object from position object
 			self.symbol = ticker.symbol
+			Stock._stocks.append(self)
 
 	def __str__(self):
 		return 'Symbol: ' + self.symbol + ' Price: ' + str(self.current_price) + ' Prediction: ' + str(self.predicted_price) + ' Gain: ' + str(self.gain) + ' RGain: ' + str(self.real_gain)
@@ -42,6 +45,14 @@ class Stock():
 		cls._model = model
 		cls._time_frame = time_frame
 		cls._main_api = main_api
+
+	@classmethod
+	def unload_stocks(cls):
+		cls._stocks = []
+
+	@classmethod
+	def removed_dupe_stocks(cls):
+		cls._stocks = list(set(cls._stocks))
 
 	@classmethod
 	def collect_current_prices(cls):
@@ -180,7 +191,7 @@ class Stock():
 					qty=quantity,
 					side='sell',
 					type='trailing_stop',
-					time_in_force='gtc',
+					time_in_force='day',
 					trail_percent=percent)
 			except Exception as exc:
 				print(exc)
