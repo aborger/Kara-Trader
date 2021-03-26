@@ -33,8 +33,8 @@ class Stock():
 			self.symbol = ticker.symbol
 
 	def __str__(self):
-		return 'Symbol: ' + self.symbol + ' Price: ' + str(self.current_price) + ' Prediction: ' + str(self.predicted_price) + ' Gain: ' + str(self.gain) + ' RGain: ' + str(self.real_gain)
-
+		#return 'Symbol: ' + self.symbol + ' Price: ' + str(self.current_price) + ' Prediction: ' + str(self.predicted_price) + ' Gain: ' + str(self.gain) + ' RGain: ' + str(self.real_gain)
+		return 'Symbol: ' + self.symbol + ' num bars: ' + str(len(self.prev_bars))
 
 	@classmethod
 	def setup(cls, NUMBARS, model, time_frame, main_api):
@@ -70,16 +70,20 @@ class Stock():
 				cls._stocks.remove(stock)
 
 	@classmethod
-	def collect_prices(cls, time_frame, num_bars):
+	def collect_prices(cls, num_bars):
 		# figure out how many times you have to call the api
 		stock_symbols = [x.symbol for x in cls._stocks]
 		num_repititions = math.ceil(len(stock_symbols) / MAX_NUM_STOCKS)
 
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# use parallel processing and several apis for this
 		for i in range(0, num_repititions):
 			# figure out which stocks to get each time
 			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
 			# call the api
-			barset = cls._main_api.get_barset(stocks_to_get, time_frame, limit=num_bars)
+			print('calling api...')
+			barset = cls._main_api.get_barset(stocks_to_get, cls._time_frame, limit=num_bars)
+			print('setting up...')
 			# add each stocks bars to its attribute
 			for stock_num in range(0, len(barset)):
 				symbol = stocks_to_get[stock_num]
@@ -97,8 +101,12 @@ class Stock():
 
 				cls._stocks[i*MAX_NUM_STOCKS + stock_num].prev_bars = dataSet
 
+		good_stocks = []
+		for stock in cls._stocks:
+			if len(stock.prev_bars) == num_bars:
+				good_stocks.append(stock)
 
-		
+		cls._stocks = good_stocks
 		
 
 
@@ -266,7 +274,7 @@ class Stock():
 				stocks_with_gains = stocks_with_gains + group
 		elif USE_GPU:
 			from python.Level1.Level2.predict import GPU_find_gain
-			stocks = GPU_find_gain(cls, cls._model, cls._time_frame, cls._NUMBARS)
+			stocks = GPU_find_gain(cls, cls._model, cls._NUMBARS)
 
 			for i in range(0, len(cls.get_stock_list())):
 				stocks_with_gains.append(stocks[i])

@@ -16,13 +16,6 @@ def normal_round(num, ndigits=0):
         return int(num * digit_value + 0.5) / digit_value
 	
 
-def denormalize(normal, key):
-    x = np.empty(shape=normal.shape)
-    for num in range(0, x.shape[0]):
-        a = normal[num] * key[num][1]
-        x[num] = a + key[num][0]
-    return x
-
 def norm(x):
     normal = np.empty(shape=x.shape)
     key = np.empty(shape=(x.shape[0], 2))
@@ -32,14 +25,20 @@ def norm(x):
         r = s_prices.reshape(1, s_prices.shape[0] * s_prices.shape[1])
         rmin = r.min()
         rmax = r.max()
-        std = (s_prices - rmin) / (rmax - rmin)
+        if rmax - rmin != 0:
+            std = (s_prices - rmin) / (rmax - rmin)
+        else:
+            std = (s_prices - rmin)
         key[num][0] = rmin
         key[num][1] = rmax - rmin
         
         v = s[:,4:]
         vmin = v.min()
         vmax = v.max()
-        vtd = (v - vmin) / (vmax - vmin)
+        if vmax - vmin != 0:
+            vtd = (v - vmin) / (vmax - vmin)
+        else:
+            vtd = (v - vmin)
         normal[num] = np.append(std, vtd, axis=1)
     return normal, key
 
@@ -50,12 +49,17 @@ def denorm(pred, key):
         x[num] = a + key[num][0]
     return x
 
+def fit(x, key):
+    return x * (x - key[:,0]) / (key[:,1])
+    
+
+
 
         
 
-def GPU_find_gain(Stock, model, time_frame, NUMBARS):
+def GPU_find_gain(Stock, model, NUMBARS):
     Stock.collect_current_prices()
-    Stock.collect_prices(time_frame, NUMBARS)
+    Stock.collect_prices(NUMBARS)
     stocks = Stock.get_stock_list()
     num_stocks = len(stocks)
     

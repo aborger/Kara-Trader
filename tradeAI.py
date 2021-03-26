@@ -7,7 +7,8 @@ import pandas as pd
 import time
 
 NUMBARS = 10
-TRAINBARLENGTH = 1000
+TRAIN_BAR_LENGTH = 500
+DATA_PER_STOCK = 5
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
@@ -21,9 +22,10 @@ STOCKDIR = '../Stock_data/'
 #								Run Functions						#
 #===================================================================#
 def train(name):
-	import python.training.head_class as hc
-	hc.Training_Model.oversee(TRAINSET, TESTSET, MODELS, name)
+	from python.training.KaraV1_1.trainer import train
+	train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK)
 	
+
 def backtest(numdays, model, Stock):
 	for day in range(0, numdays):
 		log()
@@ -94,8 +96,11 @@ def trade(Stock, User, model):
 #===================================================================#
 def import_data(is_test, is_backtest, time_frame, is_shortened):
 	print('Loading AI...')
-	from tensorflow import keras
-	model = keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
+	import tensorflow as tf
+	physical_devices = tf.config.list_physical_devices('GPU')
+	tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+
+	model = tf.keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
 	
 	if is_backtest:
 		from python.user import backtestUser as User
@@ -111,28 +116,6 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 
 	# Load S&P500
 	print('Loading stock list...')
-	"""
-	table=pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-	df = table[0]
-	sp = df['Symbol']
-
-	sp = sp.tolist()
-	sp.remove('AFL') # AFL has wierd data
-	sp.remove('DOV') # DOV also did not match historical values
-	
-	if is_shortened:
-		sp = sp[0:20]
-
-
-	if is_backtest:
-		sp = tradeapi.api.get_data(sp, time_frame)
-	
-	for symbol in sp:
-		this_stock = Stock(symbol)
-	"""
-
-	# Uncomment to use all available stocks (about 9,000)
-	# Note: takes about an hour to predict
 	
 	import alpaca_trade_api as theapi
 	# get all available stocks
@@ -141,7 +124,7 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 	fractionable = df[df.fractionable] # 1985 stocks as of 3/25/21
 
 	if is_shortened:
-		fractionable = fractionable[0:200]
+		fractionable = fractionable[0:50]
 
 	for index, row in fractionable.iterrows():
 		this_stock = Stock(row.symbol)
