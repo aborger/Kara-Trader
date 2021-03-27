@@ -4,7 +4,8 @@ from python.Level1.Level2.predict import pnp
 
 class config:
     NUMBARS = 10
-    
+    num_epochs = 1
+
     optimizer = tf.keras.optimizers.Adam(1e-4)
     mse = tf.keras.losses.MeanSquaredError()
 
