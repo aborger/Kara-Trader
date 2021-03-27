@@ -1,5 +1,6 @@
 import pathos
 import math
+import numpy as np
 
 BACKTEST = 'data/backTest/'
 INDICATOR_DATA_FILE = 'data/indicator_data.csv'
@@ -103,9 +104,12 @@ class Stock():
 
 				cls._stocks[i*MAX_NUM_STOCKS + stock_num].prev_bars = dataSet
 
+	
 		good_stocks = []
 		for stock in cls._stocks:
-			if len(stock.prev_bars) == num_bars:
+			if np.any(np.array(stock.prev_bars) < 1):
+				print(stock.symbol + ' has some wack data')
+			elif len(stock.prev_bars) == num_bars:
 				good_stocks.append(stock)
 
 		cls._stocks = good_stocks

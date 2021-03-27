@@ -6,10 +6,10 @@
 import pandas as pd
 import time
 
-NUMBARS = 4
-TRAIN_BAR_LENGTH = 12
+NUMBARS = 10
+TRAIN_BAR_LENGTH = 1000
 DATA_PER_STOCK = 5
-NUM_STOCKS = 1
+NUM_STOCKS = 3 # only used with -s (shorted test)
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'

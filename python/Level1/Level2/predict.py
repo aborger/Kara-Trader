@@ -2,6 +2,14 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from tensorflow import keras
 
+def pnp(name, np_array):
+    print(name + ' : ' + str(np_array.shape) + ' type: ' + str(np_array.dtype))
+    print(np_array)
+
+def tpnp(name, np_array):
+    print(name + ' : ' + str(np_array.shape) + ' type: ' + str(np_array.dtype))
+    for i in np_array:
+        print(i)
 
 def normal_round(num, ndigits=0):
     """
@@ -50,18 +58,11 @@ def denorm(pred, key):
     return x
 
 def fit(x, key):
-    m = x - key[:,0]
+    n = x - key[:,0]
     d = key[:,1]
-    print('x: ' + str(x.shape))
-    print(x)
-    print('m' + str(m.shape))
-    print(m)
-    x = x * m
-    print('new x: ' + str(x.shape))
-    print(x)
-    x = x / d
+    x = n / d
     return x
-    #return x * (x - key[:,0]) / (key[:,1])
+
     
 
 

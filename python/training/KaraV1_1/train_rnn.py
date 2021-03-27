@@ -1,5 +1,6 @@
 import tensorflow as tf
-
+from python.Level1.Level2.predict import pnp
+#tf.keras.backend.set_floatx('float64')
 
 class config:
     NUMBARS = 10
@@ -12,15 +13,15 @@ class config:
 class RNN(tf.keras.Model):
 	def __init__(self):
 		super(RNN, self).__init__()
-		tf.keras.backend.set_floatx('float64')
+		
 
 		self.LSTM1 = tf.keras.layers.LSTM(units=50,return_sequences=True, input_shape=(config.NUMBARS, 5))
 		self.LSTM2 = tf.keras.layers.LSTM(units=50,return_sequences=True)
 		self.LSTM3 = tf.keras.layers.LSTM(units=50,return_sequences=True)
 		self.LSTM4 = tf.keras.layers.LSTM(units=50,)
 		self.dropout = tf.keras.layers.Dropout(0.2)
-		self.dense1 = tf.keras.layers.Dense(50)
-		self.dense2 = tf.keras.layers.Dense(1, activation='sigmoid')
+		self.dense1 = tf.keras.layers.Dense(50, activation='sigmoid')
+		self.dense2 = tf.keras.layers.Dense(1)
 
 
 	def call(self, input):
@@ -34,15 +35,11 @@ class RNN(tf.keras.Model):
 		x = self.dropout(x)
 		x = self.dense1(x)
 		x = self.dense2(x)
-		print('output: ' + str(x))
 		return x
 
-	def train(self, prediction, truth):
-		print('pred shape: ' + str(prediction.shape))
-		print('truth shape: ' + str(truth.shape))
+	def train(self, input, truth):
 		with tf.GradientTape() as tape:
-			pred = self.call(prediction)
-			print('pred: ' + str(pred))
+			pred = self.call(input)
 			loss = config.mse(truth, pred)
 		grads = tape.gradient(loss, self.trainable_variables)
 		config.optimizer.apply_gradients(zip(grads, self.trainable_variables))
