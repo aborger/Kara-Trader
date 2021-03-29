@@ -455,6 +455,7 @@ class User:
 #-----------------------------------------------------------------------#
 
 class backtestUser(User):
+
 	@classmethod
 	def get_users(cls):
 		users = []
@@ -463,6 +464,14 @@ class backtestUser(User):
 		user_dict = dict(email='BackTestUser2', keyID='BackTest2', secret_key=10000)
 		#users.append(user_dict)
 		return users
+
+	@classmethod
+	def setup(cls, numdays):
+		stock_symbols = [x.symbol for x in Stock.get_stock_list()]
+		for user in cls._users:
+			user.api.setup(stock_symbols, numdays)
+
+
 	'''
 	
 	@classmethod

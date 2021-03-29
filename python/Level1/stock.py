@@ -54,7 +54,7 @@ class Stock():
 		# get prices and add to stock attribute
 		for i in range(0, num_repititions):
 			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
-			barset = cls._main_api.get_barset(stocks_to_get, 'minute', limit=1)
+			barset = cls._main_api.get_barset(stocks_to_get, '1Min', limit=1)
 			for stock_num in range(0, len(barset)):
 				symbol = stocks_to_get[stock_num]
 				this_stocks_bars = barset[symbol]

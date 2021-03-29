@@ -1,11 +1,10 @@
 import alpaca_trade_api as tradeapi
 from ...user import User as alpacaUser
-import datetime
+import numpy as np
+import math
+from datetime import datetime, date, time, timedelta
+import rfc3339 # datetime format
 import pandas as pd
-STOCKDIR = '../Stock_Data/'
-#448 for 2019, 
-#700 for 2018 (10/12/2020)
-DAYS_TO_COLLECT = 700
 NUMBARS = 10
 
 
@@ -17,8 +16,18 @@ class api:
 	alpacaUser.update_users(is_paper=True, tradeapi=tradeapi)
 	_alpacaAPI = alpacaUser.get_api()
 	def __init__(self, value):
-		self.clock = Clock()
+		self.clock = None
 		self.account = Account(value)
+		self.day_barset = None
+		self.min_barset = None
+
+	def setup(self, symbols, num_days):
+		self.clock = Clock(num_days)
+		self.day_barset = Barset(symbols, '1D', start=self.clock.get_start_day(), limit=num_days)
+		self.min_barset = Barset(symbols, '1Min', start=self.clock.get_open(), end=self.clock.get_close(), limit=self.clock.min_in_day)
+
+	def list_assets(self, status):
+		return api._alpacaAPI.list_assets(status=status)
 		
 	def _get_current(self, symbol):
 		barset = self.get_barset(symbol, '1Min', 1)
@@ -31,26 +40,13 @@ class api:
 	
 	def get_clock(self):
 		return self.clock
-	def get_barset(self, symbol, timeframe, limit):
 
-		log = pd.read_csv(STOCKDIR + symbol + '.csv', sep=r'\s*,\s*', engine='python')
-		log = log.to_numpy()
-		new_barset = []
-		# days_past starts at 10 meaning first day it will start at row 10 providing space to predict
-		for row in range(self.clock.days_past - limit, self.clock.days_past):
-			o = log[row][0]
-			c = log[row][1]
-			h = log[row][2]
-			l = log[row][3]
-			v = log[row][4]
-			#new_bar = Bar(log[row][0], log[row][1], log[row][2], log[row][3], log[row][4])
-			new_bar = Bar(o, c, h, l, v)
-
-			new_barset.append(new_bar)
-		barset = {
-			symbol: new_barset
-		}
-		return barset
+	def get_barset(self, symbols, timeframe, limit):
+		print('timeframe: ' + str(timeframe))
+		if timeframe == '1Day':
+			return self.day_barset.get_barset(symbols, self.clock.get_day_num(), limit)
+		elif timeframe == '1Min':
+			return self.min_barset.get_barset(symbols, self.clock.get_min_num(), limit)
 		
 	def list_positions(self):
 		return self.account.portfolio
@@ -79,68 +75,72 @@ class api:
 		else:
 			print('Not an option')
 		
-	def get_data(stocks, timeframe):
-		working_stocks = []
-		for stock in stocks:
-			print('Getting data for ' + stock)
-			enough_data = False
-			try:
-				size = pd.read_csv(STOCKDIR + stock + '.csv', sep=r'\s*,\s*', engine='python').size
-				if size == 5*(DAYS_TO_COLLECT + NUMBARS):
-					print('Already have data')
-					working_stocks.append(stock)
-					enough_data =  True
-				else:
-					print(size)
-			except FileNotFoundError:
-				pass
-			except:
-				raise
 
-			if not enough_data:
-				barset = api._alpacaAPI.get_barset(stock, timeframe, DAYS_TO_COLLECT + NUMBARS)
-
-				symbol_bars = barset[stock]
-				if len(symbol_bars) != DAYS_TO_COLLECT + NUMBARS:
-					print('This stock doesnt have enough data')
-				else:
-					# Always rewrite because number of bars changes
-					# Start log
-					log = open(STOCKDIR + stock + '.csv','w')
-					log.write('Open, Close, High, Low, Volume\n')
-					
-					
-					for barNum in range(0, len(symbol_bars)):
-						log.write(str(symbol_bars[barNum].o) + ',' + str(symbol_bars[barNum].c) + ',' + str(symbol_bars[barNum].h) + ',' + str(symbol_bars[barNum].l) + ',' + str(symbol_bars[barNum].v) + '\n')
-					
-					log.close()
-
-					working_stocks.append(stock)
-		return working_stocks
+	
 
 #-----------------------------------------------------------------------#
 #									Clock								#
 #-----------------------------------------------------------------------#
 
 class Clock:
-	def __init__(self):
+	def __init__(self, numdays):
 		self.is_open = True
-		#self.real_time = datetime.datetime.today()
 		self.days_past = NUMBARS # usually 10
-		# so days_past will be at 1/2/19
-		self.timestamp = DAYS_TO_COLLECT + self.days_past #448 for 2019, 700 for 2018
-		# dont forget to change in get_data too
-	'''	
-	def set_time(self, day, month, year, hour, minute, second):
-		self.timestamp = datetime.datetime(year, month, day, hour, minute, second)
+		self.open = time(9, 30)
+		self.close = time(16, 00)
+		delta = self._time_diff(self.close, self.open)
+		self.min_in_day = int(delta.seconds / 60) # should be 450
 
-		self.timestamp = self.real_time - self.timestamp
+		now = date.today()
+		days_back = timedelta(numdays - self.days_past)
 
-		#self.timestamp = self.timestamp.days
-	'''	
+		self.start_day = now - days_back
+		self.daystamp = self.start_day
+		self.timestamp = time(9, 30)
+
+	def _time_diff(self, exit, enter):
+		return datetime.combine(date.today(), exit) - datetime.combine(date.today(), enter)
+
+	def _date_diff(self, exit, enter):
+		return datetime.combine(exit, time(0)) - datetime.combine(enter, time(0))
 
 	def next_day(self):
-		self.days_past += 1
+		delta = datetime.timedelta(days=1)
+		self.daystamp = self.daystamp + 1
+
+	def next_min(self):
+		delta = datetime.timedelta(min=1)
+		self.timestamp = self.timestamp + 1
+
+	def get_day_stamp(self):
+		return rfc3339.rfc3339(self.daystamp)
+
+	def get_time_stamp(self):
+		time = datetime.combine(self.daystamp, self.timestamp)
+		return rfc3339.rfc3339(time)
+
+	def get_day_num(self):
+		delta = self._day_diff(self.daystamp, self.start_day)
+		return delta.days
+
+	def get_min_num(self):
+		delta = self._time_diff(self.timestamp, self.open)
+		return int(delta.seconds / 60)
+
+	def get_start_day(self):
+		time = datetime.combine(self.start_day, self.open)
+		return rfc3339.rfc3339(time)
+
+	def get_open(self):
+		time = datetime.combine(self.daystamp, self.open)
+		return rfc3339.rfc3339(time)
+
+	def get_close(self):
+		time = datetime.combine(self.daystamp, self.close)
+		return rfc3339.rfc3339(time)
+
+
+	
 		
 		
 #-----------------------------------------------------------------------#
@@ -200,6 +200,56 @@ class Account:
 			print('Qty: ' + str(position.qty))
 			print('Price: ' + str(position.current_price))
 			print('Value: ' + str(position.qty * position.entry_price))
+
+#-----------------------------------------------------------------------#
+#								Barset									#
+#-----------------------------------------------------------------------#
+class Barset:
+	def __init__(self, symbols, time_frame, start=None, end=None, limit=None):
+		self.MAX_NUM_STOCKS = 200
+		self.symbols = symbols # list of symbol strings
+		self.time_frame = time_frame
+		self.start = start
+		self.end = end
+		self.limit = limit
+		self.stockSet = {}
+
+		self._collect()
+
+		 
+
+	def get_barset(self, symbols, bar_num, limit):
+		stockset = self.stockSet
+		print('num_bars: ')
+		print(len(stockset[symbols[0]]))
+		for stock in symbols:
+			stockset[stock] = stockset[stock][bar_num - limit : bar_num]
+		print(len(stockset[symbols[0]]))
+		return stockset
+
+
+
+
+	def _collect(self):
+		# figure out how many times you have to call the api
+		num_repititions = math.ceil(len(self.symbols) / self.MAX_NUM_STOCKS)
+
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		# use parallel processing and several apis for this
+		for i in range(0, num_repititions):
+			# figure out which stocks to get each time
+			stocks_to_get = self.symbols[i*self.MAX_NUM_STOCKS:(i+1)*self.MAX_NUM_STOCKS]
+			# call the api
+			print('calling api...')
+			if self.end is not None:
+				barset = api._alpacaAPI.get_barset(stocks_to_get, self.time_frame, start=self.start, end=self.end)
+			else:
+				barset = api._alpacaAPI.get_barset(stocks_to_get, self.time_frame, start=self.start)
+			print('setting up...')
+			# add each stocks bars to its attribute
+			self.stockSet = barset
+	
+
 		
 
 #-----------------------------------------------------------------------#

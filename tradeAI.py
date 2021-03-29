@@ -9,7 +9,7 @@ import time
 NUMBARS = 10
 TRAIN_BAR_LENGTH = 1000
 DATA_PER_STOCK = 5
-NUM_STOCKS = 3 # only used with -s (shorted test)
+NUM_STOCKS = 10 # only used with -s (shorted test)
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
@@ -28,10 +28,13 @@ def train(name):
 	
 
 def backtest(numdays, model, Stock):
+	#setup
+	User.setup(numdays)
+	# begin testing
 	for day in range(0, numdays):
-		log()
-		trade(model, Stock)
-		for user in User.get_User():
+		#log()
+		trade(Stock, User, model)
+		for user in User.get_Users():
 			user.api.get_account().remove_empty()
 			
 		User.get_portfolio()
@@ -129,8 +132,7 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 
 	for index, row in fractionable.iterrows():
 		this_stock = Stock(row.symbol)
-
-	
+		
 	
 	return Stock, User, model
 	

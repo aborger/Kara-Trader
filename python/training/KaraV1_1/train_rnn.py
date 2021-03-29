@@ -22,7 +22,8 @@ class RNN(tf.keras.Model):
 		self.LSTM4 = tf.keras.layers.LSTM(units=50,)
 		self.dropout = tf.keras.layers.Dropout(0.2)
 		self.dense1 = tf.keras.layers.Dense(50, activation='sigmoid')
-		self.dense2 = tf.keras.layers.Dense(1)
+		self.dense2 = tf.keras.layers.Dense(25, activation='sigmoid')
+		self.dense3 = tf.keras.layers.Dense(1)
 
 
 	def call(self, input):
@@ -36,6 +37,7 @@ class RNN(tf.keras.Model):
 		x = self.dropout(x)
 		x = self.dense1(x)
 		x = self.dense2(x)
+		x = self.dense3(x)
 		return x
 
 	def train(self, input, truth):

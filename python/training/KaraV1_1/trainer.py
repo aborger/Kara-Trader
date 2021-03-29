@@ -3,6 +3,7 @@ from python.Level1.Level2.predict import norm, denorm, fit, pnp, tpnp
 import numpy as np
 import tensorflow as tf
 
+MODEL_DIR = '/data/models/V1_1/'
 
 def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
 
