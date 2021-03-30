@@ -9,7 +9,7 @@ import time
 NUMBARS = 10
 TRAIN_BAR_LENGTH = 1000
 DATA_PER_STOCK = 5
-NUM_STOCKS = 10 # only used with -s (shorted test)
+NUM_STOCKS = 5 # only used with -s (shorted test)
 TRAINSET = 'data/dataset.csv'
 TESTSET = 'data/testSet.csv'
 MODELS = 'data/models/'
@@ -44,8 +44,8 @@ def backtest(numdays, model, Stock):
 		User.get_portfolio()
 
 def test():
-	#User.get_stats()
-	Stock.collect_current_prices()
+	User.get_stats()
+	#Stock.collect_current_prices()
 	
 def charge():
     User.charge_users()
@@ -84,7 +84,7 @@ def trade(Stock, User, model):
 		print('Calculating best stocks...')
 
 		start_time = time.time()
-		diversified_stocks = Stock.find_diversity(NUM_BEST_STOCKS, User.get_boosters())
+		diversified_stocks = Stock.find_diversity(NUM_BEST_STOCKS)
 		end_time = time.time()
 
 		print(f"Time to predict is {end_time - start_time}")
@@ -104,7 +104,11 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 	physical_devices = tf.config.list_physical_devices('GPU')
 	tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
-	model = tf.keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
+	from python.training.KaraV1_1.train_rnn import RNN
+	model = RNN()
+	model.load_weights('data/models/V1_1/test_model')
+
+	#model = tf.keras.models.load_model('../Sensitive_Data/production_model.h5', compile=False)
 	
 	if is_backtest:
 		from python.user import backtestUser as User
@@ -115,7 +119,7 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 
 	# setup stocks
 	from python.Level1.stock import Stock
-	Stock.setup(NUMBARS, model, time_frame, User.get_api())
+	Stock.setup(NUMBARS, model, time_frame, User.get_api(), User.get_boosters()[0:5], User.get_boost_users(), is_test)
 
 
 	# Load S&P500
@@ -132,6 +136,8 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 
 	for index, row in fractionable.iterrows():
 		this_stock = Stock(row.symbol)
+
+	print('Number of stocks available: ' + str(len(Stock.get_stock_list())))
 		
 	
 	return Stock, User, model
@@ -147,7 +153,7 @@ if __name__ == '__main__':
 						help="'train', 'buy', 'sell', 'test', 'trail', 'log', 'read', 'charge', 'upload'")
 	
 	parser.add_argument("-t", action='store_true', required=False,
-						help= "Include -t to only use test users")
+						help= "Include -t to test (uses test users and doesnt actually trade)")
 
 	parser.add_argument("-s", action='store_true', required=False,
 						help= "Include -s to only use some stocks")
@@ -193,7 +199,7 @@ if __name__ == '__main__':
 
 		# setup stocks
 		from python.Level1.stock import Stock
-		Stock.setup(NUMBARS, model, args.time, User.get_api())
+		Stock.setup(NUMBARS, model, args.time, User.get_api(), not args.t)
 
 
 		# Load S&P500

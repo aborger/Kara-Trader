@@ -68,7 +68,8 @@ class User:
 			else:
 				print(self.info['email'] + ' is paper account')
 
-
+	def __str__(self):
+		return self.info['email']
 
 	@classmethod
 	def update_users(cls, is_paper, tradeapi):
@@ -88,12 +89,10 @@ class User:
 			elif is_paper:
 				if email == 'kara':
 					cls._users.append(new_user)
-					cls._boosters.append(new_user)
 			else:
 				if new_user.status:
 					new_user.sub_id = sub_items.get(email, None)
 					cls._users.append(new_user)
-					cls._boosters.append(new_user)
 
 		
 				
@@ -421,6 +420,15 @@ class User:
 		for booster in cls._boosters:
 			apis.append(booster.api)
 		return apis
+
+	@classmethod
+	def get_boost_users(cls):
+		users = []
+		for user in cls._users:
+			users.append(user)
+		for booster in cls._boosters:
+			users.append(booster)
+		return users
 		
 	@classmethod
 	def get_Users(cls):

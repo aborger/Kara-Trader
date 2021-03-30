@@ -73,7 +73,7 @@ def GPU_find_gain(Stock, model, NUMBARS):
     Stock.collect_current_prices()
     Stock.collect_prices(NUMBARS)
     stocks = Stock.get_stock_list()
-    num_stocks = len(stocks)
+
     
     datasets = []
     for stock in stocks:

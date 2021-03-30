@@ -7,7 +7,6 @@ INDICATOR_DATA_FILE = 'data/indicator_data.csv'
 STOCK_DATA_DIR = 'data/stock_history/'
 USE_MULTIPROCESSING = False
 USE_GPU = True
-ACTUALLY_TRADE = False
 
 MAX_NUM_STOCKS = 200 # Max number of stocks to call from alpaca api
 
@@ -17,6 +16,7 @@ class Stock():
 	_loss_percent = .01
 	_stocks = []
 	_main_api = None
+	ACTUALLY_TRADE = None
 
 	#-----------------------------------------------------------------------#
 	#								Initializing							#
@@ -35,75 +35,170 @@ class Stock():
 
 	def __str__(self):
 		#return 'Symbol: ' + self.symbol + ' Price: ' + str(self.current_price) + ' Prediction: ' + str(self.predicted_price) + ' Gain: ' + str(self.gain) + ' RGain: ' + str(self.real_gain)
-		return 'Symbol: ' + self.symbol + ' num bars: ' + str(len(self.prev_bars))
+		return 'Symbol: ' + self.symbol + ' num bars: ' + str(len(self.prev_bars)) + ' current price: ' + str(self.current_price)
 
 	@classmethod
-	def setup(cls, NUMBARS, model, time_frame, main_api):
+	def setup(cls, NUMBARS, model, time_frame, main_api, boosters, boost_users, is_test):
 		cls._NUMBARS = NUMBARS
 		cls._model = model
 		cls._time_frame = time_frame
 		cls._main_api = main_api
+		cls._boosters = boosters
+		cls._boost_users = boost_users
+		cls.ACTUALLY_TRADE = not is_test
+
+		if cls.ACTUALLY_TRADE:
+			print('NOTE: YOU WILL BE ACTUALLY TRADING')
+		else:
+			print('NOTE: THIS IS A TEST, YOU ARE NOT ACTUALLY TRADING')
+
+	@classmethod
+	def unload_stocks(cls):
+		stocks = cls._stocks
+		cls._stocks = []
+		return stocks
+
+	@classmethod
+	def _collect(cls, tickers, time_frame, limit):
+		print('collecting...')
+		# calculate number of workers
+		print('num stocks: ' + str(len(tickers)))
+		num_apis = len(cls._boosters)
+		print('num apis: ' + str(num_apis))
+		num_stocks_per_api = int(len(tickers) / num_apis)
+		print('stocks per api: ' + str(num_stocks_per_api))
+		if num_stocks_per_api > MAX_NUM_STOCKS:
+			num_stocks_per_api = MAX_NUM_STOCKS
+		print('stocks per api: ' + str(num_stocks_per_api))
+		num_stocks_per_rep = num_apis * num_stocks_per_api
+		print('stocks per rep: ' + str(num_stocks_per_rep))
+		num_repitions = math.ceil(len(tickers) / num_stocks_per_rep)
+		print('num repititions: ' + str(num_repitions))
+
+
+		dataSet = []
+		for repition in range(0, num_repitions):
+			workers = []
+			for api_num in range(0, num_apis):
+				min_stock = repition * num_stocks_per_rep + api_num * num_stocks_per_api
+				max_stock = repition * num_stocks_per_rep + (api_num + 1) * num_stocks_per_api
+				if max_stock > len(tickers):
+					max_stock = len(tickers)
+				print('Repition: ' + str(repition) + ' api num: ' + str(api_num) + ' min stock: ' + str(min_stock) + ' max stock: ' + str(max_stock))
+
+				worker_tickers = [stock.symbol for stock in cls._stocks[min_stock : max_stock]]
+				worker_api = cls._boosters[api_num]
+				worker_dict = dict(api = worker_api, tickers = worker_tickers)
+				workers.append(worker_dict)
+
+			pool = pathos.helpers.mp.Pool(num_apis)
+			worker_users = []
+			barset = pool.starmap(cls._access_api, [(worker, time_frame, limit) for worker in workers])
+			print('map complete.')
+			pool.close()
+			print('Pool is closed')
+
+			for work_data in barset:
+				for stock in work_data:
+					dataSet.append(stock)
+
+
+		return dataSet
+
+
+	@classmethod
+	def _access_api(cls, worker, time_frame, limit):
+		print('accessing api...')
+		tickers = worker["tickers"]
+		api = worker["api"]
+
+
+		barset = api.get_barset(tickers, time_frame, limit=limit)
+		stockSet = []
+		for stock_num in range(0, len(barset)):
+			ticker = tickers[stock_num]
+			bars = barset[ticker]
+
+			stock_data = []
+			for barNum in bars:
+				bar = dict(o = barNum.o, c = barNum.c, h = barNum.h, l = barNum.l, v = barNum.v)
+				stock_data.append(bar)
+			stock = dict(ticker = ticker, barSet = stock_data)
+			stockSet.append(stock)
+			
+		return stockSet
 
 	@classmethod
 	def collect_current_prices(cls):
 		# alpaca api only allows a certain number of stocks per api call
 		# several calls are necessary
-		stock_symbols = [x.symbol for x in cls._stocks]
-		num_repititions = math.ceil(len(stock_symbols) / MAX_NUM_STOCKS)
 		
-		# get prices and add to stock attribute
-		for i in range(0, num_repititions):
-			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
-			barset = cls._main_api.get_barset(stocks_to_get, '1Min', limit=1)
-			for stock_num in range(0, len(barset)):
-				symbol = stocks_to_get[stock_num]
-				this_stocks_bars = barset[symbol]
-				price = -1
+		print('Collecting current prices...')
+		tickers = [x.symbol for x in cls._stocks]
+
+		stockSet = cls._collect(tickers, '1Min', limit=1)
+
+
+		old_stocks = cls.unload_stocks()
+		updated_stocks = []
+		for stock in stockSet:
+			if len(stock['barSet']) == 0:
+				print(stock['ticker'] + ' has no bars')
+			elif stock['barSet'][0]['c'] == 0:
+				print(stock['ticker'] + ' has a price of 0.')
+			else:
 				try:
-					price = this_stocks_bars[0].c
+					for old_stock in old_stocks:
+						if old_stock.symbol == stock['ticker']:
+							old_stock.current_price = stock['barSet'][0]['c']
+							updated_stocks.append(old_stock)
 				except:
-					print(cls._stocks[i*MAX_NUM_STOCKS + stock_num].symbol + 'does not have price')
-				cls._stocks[i*MAX_NUM_STOCKS + stock_num].current_price = price
+					print(this.symbol)
+					#print(stock['barSet'])
+					raise
 
-		good_stocks = []
-		for stock in cls._stocks:
-			if len(stock.prev_bars) == num_bars:
-				good_stocks.append(stock)
+		cls._stocks = updated_stocks
 
-		cls._stocks = good_stocks
 
 	@classmethod
 	def collect_prices(cls, num_bars):
 		# figure out how many times you have to call the api
-		stock_symbols = [x.symbol for x in cls._stocks]
-		num_repititions = math.ceil(len(stock_symbols) / MAX_NUM_STOCKS)
+		tickers = [x.symbol for x in cls._stocks]
 
-		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		# use parallel processing and several apis for this
-		for i in range(0, num_repititions):
-			# figure out which stocks to get each time
-			stocks_to_get = stock_symbols[i*MAX_NUM_STOCKS:(i+1)*MAX_NUM_STOCKS]
-			# call the api
-			print('calling api...')
-			barset = cls._main_api.get_barset(stocks_to_get, cls._time_frame, limit=num_bars)
-			print('setting up...')
-			# add each stocks bars to its attribute
-			for stock_num in range(0, len(barset)):
-				symbol = stocks_to_get[stock_num]
-				this_stocks_bars = barset[symbol]
+		stockSet = cls._collect(tickers, cls._time_frame, limit=num_bars)
 
-				dataSet = []
-				for barNum in this_stocks_bars:
-					bar = []
-					bar.append(barNum.o)
-					bar.append(barNum.c)
-					bar.append(barNum.h)
-					bar.append(barNum.l)
-					bar.append(barNum.v)
-					dataSet.append(bar)
+		old_stocks = cls.unload_stocks()
+		updated_stocks = []
+		for stock in stockSet:
+			if len(stock['barSet']) == 0 or len(stock['barSet']) < num_bars:
+				print(stock['ticker'] + ' doesnt have enough bars')
+			else:
+				try:
+					bars = []
+					for bar in stock['barSet']:
+						barSet = []
+						barSet.append(bar['o'])
+						barSet.append(bar['c'])
+						barSet.append(bar['h'])
+						barSet.append(bar['l'])
+						barSet.append(bar['v'])
+						bars.append(barSet)
+					
+					if np.any(np.array(bars) < 1):
+						print(stock.symbol + ' has wack data.')
+					else:
+						for old_stock in old_stocks:
+							if old_stock.symbol == stock['ticker']:
+								old_stock.prev_bars = bars
+								updated_stocks.append(old_stock)
+				except Exception as e:
+					print(stock['ticker'])
+					print(e)
+					#print(stock['barSet'])
+					
 
-				cls._stocks[i*MAX_NUM_STOCKS + stock_num].prev_bars = dataSet
-
+		cls._stocks = updated_stocks
+				
 	
 		good_stocks = []
 		for stock in cls._stocks:
@@ -140,7 +235,7 @@ class Stock():
 	#-----------------------------------------------------------------------#
 	def buy(self, api, quantity):
 		print ('Buying ' + self.symbol + ' QTY: ' + str(quantity))
-		if ACTUALLY_TRADE:
+		if Stock.ACTUALLY_TRADE:
 			try:
 				api.submit_order(
 					symbol=self.symbol,
@@ -155,7 +250,7 @@ class Stock():
 
 	def buy_notional(self, api, dollar_amount):
 		print('Buying ' + self.symbol + ' Dollar Amount: ' + str(dollar_amount))
-		if ACTUALLY_TRADE:
+		if Stock.ACTUALLY_TRADE:
 			data = {
 				"symbol": self.symbol,
 				"notional": dollar_amount,
@@ -172,7 +267,7 @@ class Stock():
 
 	def sell(self, api, quantity):
 		print ('Sold ' + self.symbol)
-		if ACTUALLY_TRADE:
+		if Stock.ACTUALLY_TRADE:
 			try:
 				api.submit_order(
 					symbol=self.symbol,
@@ -187,7 +282,7 @@ class Stock():
 		
 	def trailing_stop(self, api, quantity, percent):
 		print('Applying trailing stop for ' + self.symbol)
-		if ACTUALLY_TRADE:
+		if Stock.ACTUALLY_TRADE:
 			try:
 				api.submit_order(
 					symbol=self.symbol,
@@ -210,8 +305,8 @@ class Stock():
 	# diversified_stocks is dict with best stocks and their buy ratio
 	# second_best_stocks is num_best_stocks next best stocks
 	@classmethod
-	def find_diversity(cls, num_best_stocks, boosters):
-		best_stocks = Stock._find_best(num_best_stocks, boosters)
+	def find_diversity(cls, num_best_stocks):
+		best_stocks = Stock._find_best(num_best_stocks)
 		gain_sum = 0
 		for stock in best_stocks:
 			gain_sum += stock.gain
@@ -232,7 +327,7 @@ class Stock():
 	# list[0] = num_best_stocks of the highest gains. If num_best_stocks is 5, list[0] is the top 5 stocks
 	# list[1] = next numb_best_stocks of the next highest gains. If num_best_stocks is 5, list[1] is the next top 5 stocks
 	@classmethod
-	def _find_best(cls, num_best_stocks, boosters): 
+	def _find_best(cls, num_best_stocks): 
 				
 		def get_gain(stock):
 				return stock.gain
@@ -281,14 +376,13 @@ class Stock():
 		elif USE_GPU:
 			from python.Level1.Level2.predict import GPU_find_gain
 			stocks = GPU_find_gain(cls, cls._model, cls._NUMBARS)
-
+			print('Number of viable stocks: ' + str(len(Stock.get_stock_list())))
 			for i in range(0, len(cls.get_stock_list())):
 				stocks_with_gains.append(stocks[i])
 		else:
 			from python.Level1.Level2.predict import find_gain
 			from tensorflow import keras
 
-			#model = keras.models.load_model('data/models/different_stocks.h5', compile=False)
 			for stock in cls.get_stock_list():
 				try:
 					stocks_with_gains.append(find_gain(stock, cls._main_api, cls._model, cls._time_frame, cls._NUMBARS))

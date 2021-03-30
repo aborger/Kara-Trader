@@ -3,7 +3,7 @@ from python.Level1.Level2.predict import norm, denorm, fit, pnp, tpnp
 import numpy as np
 import tensorflow as tf
 
-MODEL_DIR = '/data/models/V1_1/'
+MODEL_DIR = './data/models/V1_1/'
 
 def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
 
@@ -13,6 +13,7 @@ def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
     print('converting to dataset...')
     dataset = [stock.prev_bars for stock in Stock.get_stock_list()]
     npSet = np.array(dataset, dtype=object)
+
 
     clusters = [] # each cluster is what the model uses to make one prediction for one stock
     truths = []
@@ -25,6 +26,7 @@ def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
             truths.append(truth)
 
     clusters = np.array(clusters)
+
     truths = np.array(truths)
 
     model = RNN()
@@ -36,6 +38,7 @@ def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
 
     for epoch in range(0, config.num_epochs):
         epoch_loss = []
+        print('Training on epoch ' + str(epoch) + '...')
         for batch_num in range(0, num_batches - 1):
             clus_i = batch_num * batch_size # starting cluster
             clus_f = clus_i + batch_size # ending cluster
@@ -49,7 +52,7 @@ def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
             epoch_loss.append(tf.cast(loss, dtype=tf.float16))
             #print('Batch ' + str(batch_num) + '. Loss of ' + str(loss))
 
-        print('Epoch ' + str(epoch) + ' - Average Loss of ' + str(avg_loss) + ' - Min Loss of ' + str(min(epoch_loss)) + ' - Max Loss of ' + str(max(epoch_loss)))
+        print('Epoch ' + str(epoch) + ' - Average Loss of ' + str(sum(epoch_loss)/len(epoch_loss)) + ' - Min Loss of ' + str(min(epoch_loss)) + ' - Max Loss of ' + str(max(epoch_loss)))
 
         
         print('Validating...')
@@ -78,6 +81,9 @@ def train(Stock, NUMBARS, TRAIN_BAR_LENGTH, DATA_PER_STOCK):
         plt.legend()
         plt.show()
         avg_loss = sum(epoch_loss) / len(epoch_loss)
+
+    print('Saving model.')
+    model.save_weights(filepath=MODEL_DIR + 'test_model2')
 
         
 
