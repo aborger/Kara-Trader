@@ -61,7 +61,8 @@ def quick_sell():
 	User.users_sell()
 	
 def trailing(is_paper):
-    User.users_trailing()
+    #User.users_trailing()
+	User.user_manual_trail()
 
 def upload():
 	# Upload data to website

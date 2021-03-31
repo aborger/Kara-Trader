@@ -271,6 +271,30 @@ class User:
 			for position in portfolio:
 				stock_position = Stock(position)
 				stock_position.trailing_stop(user.api, position.qty, percent)
+
+	@classmethod
+	def user_manual_trail(cls): # to be used with notional buy
+		percent = 0.01
+
+		stocks = []
+		for user in cls._users:
+			portfolio = user.api.list_positions()
+			[stocks.append(position.symbol) for position in portfolio if position.symbol not in stocks]
+		Stock.set_stocks(stocks)
+
+		while True: #cls.get_api().get_clock().is_open:
+			print('refreshing prices...')
+			Stock.collect_current_prices()
+			for stock in Stock.get_stock_list():
+				if stock.current_price > stock.trail_price:
+					stock.trail_price = stock.current_price
+					stock.stop_price = stock.current_price * (1 - percent)
+				if stock.current_price < stock.stop_price:
+					for user in cls._users:
+						portfolio = user.api.list_positions()
+						for position in portfolio:
+							if position.symbol == stock.symbol:
+								stock.sell(user.api, position.qty)
 				
 	@classmethod
 	def cancel_orders(cls):

@@ -27,6 +27,8 @@ class Stock():
 		self.predicted_price = None
 		self.prev_bars = None
 		self.current_price = None
+		self.trail_price = 0
+		self.stop_price = 0
 		if isinstance(ticker, str): # its a regular string
 			self.symbol = ticker
 			Stock._stocks.append(self)
@@ -59,21 +61,41 @@ class Stock():
 		return stocks
 
 	@classmethod
+	def set_stocks(cls, stocks):
+		cls.unload_stocks()
+		for stock in stocks:
+			Stock(stock)
+
+	@classmethod
 	def _collect(cls, tickers, time_frame, limit):
-		print('collecting...')
+		DEBUG = False
+		if DEBUG:
+			print('collecting...')
+			print('num stocks: ' + str(len(tickers)))
 		# calculate number of workers
-		print('num stocks: ' + str(len(tickers)))
 		num_apis = len(cls._boosters)
-		print('num apis: ' + str(num_apis))
+		if DEBUG:
+			print('num apis: ' + str(num_apis))
 		num_stocks_per_api = int(len(tickers) / num_apis)
-		print('stocks per api: ' + str(num_stocks_per_api))
+
+		if DEBUG:
+			print('stocks per api: ' + str(num_stocks_per_api))
+
 		if num_stocks_per_api > MAX_NUM_STOCKS:
 			num_stocks_per_api = MAX_NUM_STOCKS
-		print('stocks per api: ' + str(num_stocks_per_api))
+
+		if DEBUG:
+			print('stocks per api: ' + str(num_stocks_per_api))
+
 		num_stocks_per_rep = num_apis * num_stocks_per_api
-		print('stocks per rep: ' + str(num_stocks_per_rep))
+
+		if DEBUG:
+			print('stocks per rep: ' + str(num_stocks_per_rep))
+
 		num_repitions = math.ceil(len(tickers) / num_stocks_per_rep)
-		print('num repititions: ' + str(num_repitions))
+
+		if DEBUG:
+			print('num repititions: ' + str(num_repitions))
 
 
 		dataSet = []
@@ -84,7 +106,9 @@ class Stock():
 				max_stock = repition * num_stocks_per_rep + (api_num + 1) * num_stocks_per_api
 				if max_stock > len(tickers):
 					max_stock = len(tickers)
-				print('Repition: ' + str(repition) + ' api num: ' + str(api_num) + ' min stock: ' + str(min_stock) + ' max stock: ' + str(max_stock))
+
+				if DEBUG:
+					print('Repition: ' + str(repition) + ' api num: ' + str(api_num) + ' min stock: ' + str(min_stock) + ' max stock: ' + str(max_stock))
 
 				worker_tickers = [stock.symbol for stock in cls._stocks[min_stock : max_stock]]
 				worker_api = cls._boosters[api_num]
@@ -94,9 +118,7 @@ class Stock():
 			pool = pathos.helpers.mp.Pool(num_apis)
 			worker_users = []
 			barset = pool.starmap(cls._access_api, [(worker, time_frame, limit) for worker in workers])
-			print('map complete.')
 			pool.close()
-			print('Pool is closed')
 
 			for work_data in barset:
 				for stock in work_data:
@@ -108,7 +130,6 @@ class Stock():
 
 	@classmethod
 	def _access_api(cls, worker, time_frame, limit):
-		print('accessing api...')
 		tickers = worker["tickers"]
 		api = worker["api"]
 
