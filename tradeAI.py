@@ -45,7 +45,7 @@ def backtest(numdays, model, Stock):
 
 def test():
 	User.get_stats()
-	#Stock.collect_current_prices()
+	#giStock.collect_current_prices()
 	
 def charge():
     User.charge_users()
