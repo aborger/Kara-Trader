@@ -103,7 +103,8 @@ def import_data(is_test, is_backtest, time_frame, is_shortened):
 	print('Loading AI...')
 	import tensorflow as tf
 	physical_devices = tf.config.list_physical_devices('GPU')
-	tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+	if len(physical_devices) > 0:
+		tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 	from python.training.KaraV1_1.train_rnn import RNN
 	model = RNN()
